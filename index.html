@@ -9,111 +9,566 @@
   body {
     margin:0; padding:0;
     font-family:'Sarabun','Segoe UI',Arial,sans-serif;
-    background:#F2F4F7;
+    background:
+      radial-gradient(1100px 480px at 12% -10%, rgba(43,124,246,0.10), transparent 60%),
+      radial-gradient(900px 420px at 100% 0%, rgba(43,124,246,0.06), transparent 55%),
+      #EEF1F6;
     color:#1A1A1A;
+    min-height:100vh;
   }
-  .wrap { max-width:1200px; margin:0 auto; padding:24px 16px 60px; }
-  h1 { font-size:20px; margin:0 0 4px 0; }
-  .sub { color:#666; font-size:13px; margin:0 0 24px 0; }
+
+  /* Top bar */
+  .topbar {
+    background:#FFFFFF;
+    border-bottom:1px solid #E7EAF0;
+    box-shadow:0 1px 2px rgba(16,24,40,0.04);
+  }
+  .topbar-inner {
+    max-width:1200px;
+    margin:0 auto;
+    padding:14px 20px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .topbar img { width:32px; height:32px; display:block; }
+  .topbar-title { font-size:15px; font-weight:700; color:#1A1A1A; line-height:1.2; }
+  .topbar-title span { display:block; font-size:11px; font-weight:600; color:#8A93A3; letter-spacing:0.3px; text-transform:uppercase; margin-top:1px; }
+  .topbar-badge {
+    margin-left:auto;
+    font-size:11px;
+    font-weight:700;
+    color:#2B7CF6;
+    background:#EAF1FE;
+    padding:5px 10px;
+    border-radius:999px;
+    letter-spacing:0.2px;
+  }
+  .tool-select {
+    margin-left:auto;
+    font-size:13px;
+    font-weight:700;
+    font-family:inherit;
+    color:#2B7CF6;
+    background:#EAF1FE;
+    border:1.5px solid #D7E6FD;
+    padding:8px 34px 8px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232B7CF6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    background-size:14px;
+    transition:background-color .15s ease, border-color .15s ease;
+  }
+  .tool-select:hover { background-color:#DCE9FE; }
+  .tool-select:focus { outline:none; border-color:#2B7CF6; box-shadow:0 0 0 4px rgba(43,124,246,0.12); }
+
+  .tool-section { display:none; }
+  .tool-section.active { display:block; }
+
+  .empty-state {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:64px 24px;
+    color:#98A2B3;
+  }
+  .empty-state-icon {
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    background:#F3F5F8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#B0B8C4;
+    margin-bottom:16px;
+  }
+  .empty-state-title {
+    font-size:15px;
+    font-weight:800;
+    color:#3A4150;
+    margin:0 0 6px 0;
+  }
+  .empty-state-sub {
+    font-size:13px;
+    color:#98A2B3;
+    margin:0;
+    max-width:360px;
+    line-height:1.6;
+  }
+
+  .wrap { max-width:1200px; margin:0 auto; padding:28px 20px 64px; }
+  h1 { font-size:22px; margin:0 0 22px 0; font-weight:800; letter-spacing:-0.2px; }
+
   .grid {
     display:grid;
-    grid-template-columns: 340px 1fr;
-    gap:20px;
+    grid-template-columns: 360px 1fr;
+    gap:24px;
     align-items:start;
   }
-  @media (max-width: 820px) {
+  @media (max-width: 860px) {
     .grid { grid-template-columns: 1fr; }
   }
+
   .panel {
     background:#FFFFFF;
-    border-radius:10px;
-    padding:20px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+    border-radius:16px;
+    padding:24px;
+    border:1px solid #EAEDF2;
+    box-shadow:0 1px 2px rgba(16,24,40,0.04), 0 8px 24px rgba(16,24,40,0.05);
   }
-  .field { margin-bottom:16px; }
-  label { display:block; font-size:13px; font-weight:700; color:#333; margin-bottom:6px; }
+  .panel-heading {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    font-weight:800;
+    color:#2B7CF6;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    margin:0 0 18px 0;
+    padding-bottom:14px;
+    border-bottom:1px solid #F0F2F6;
+  }
+  .panel-heading .dot { width:7px; height:7px; border-radius:50%; background:#2B7CF6; box-shadow:0 0 0 3px #EAF1FE; }
+
+  .field { margin-bottom:18px; }
+  label { display:block; font-size:13px; font-weight:700; color:#333; margin-bottom:7px; }
   input[type=text] {
     width:100%;
-    padding:10px 12px;
-    border:1px solid #DDD;
-    border-radius:6px;
+    padding:11px 13px;
+    border:1.5px solid #E3E6EC;
+    border-radius:9px;
     font-size:14px;
     font-family:inherit;
+    background:#FAFBFC;
+    transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
   }
-  input[type=text]:focus { outline:2px solid #2B7CF6; border-color:#2B7CF6; }
-  .hint { font-size:11px; color:#999; margin-top:4px; }
+  input[type=text]:hover { border-color:#CBD3E1; }
+  input[type=text]:focus {
+    outline:none;
+    border-color:#2B7CF6;
+    background:#FFFFFF;
+    box-shadow:0 0 0 4px rgba(43,124,246,0.12);
+  }
+  .hint { font-size:11.5px; color:#98A2B3; margin-top:6px; line-height:1.5; }
+  .hint b { color:#2B7CF6; }
+
   .btn {
     width:100%;
-    padding:12px 16px;
+    padding:13px 16px;
     border:none;
-    border-radius:6px;
+    border-radius:9px;
     font-size:14px;
     font-weight:700;
     font-family:inherit;
     cursor:pointer;
-    margin-top:6px;
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    transition:background .15s ease, transform .05s ease, box-shadow .15s ease;
   }
-  .btn-primary { background:#2B7CF6; color:#fff; }
+  .btn:active { transform:translateY(1px); }
+  .btn-primary { background:#2B7CF6; color:#fff; box-shadow:0 4px 12px rgba(43,124,246,0.28); }
   .btn-primary:hover { background:#1F63C4; }
-  .btn-secondary { background:#F0F2F5; color:#333; }
-  .btn-secondary:hover { background:#E4E7EB; }
+  .btn-secondary { background:#F3F5F8; color:#3A4150; border:1.5px solid #E7EAF0; }
+  .btn-secondary:hover { background:#EAEDF2; }
+  .btn svg { flex:none; }
+
   .status {
-    font-size:12px;
-    margin-top:10px;
-    min-height:16px;
-    color:#1a8a4a;
+    font-size:12.5px;
+    margin-top:12px;
+    min-height:18px;
     font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
+
   .preview-shell {
-    background:#F2F4F7;
-    border-radius:10px;
-    padding:20px;
+    background:transparent;
+    border-radius:16px;
+  }
+  .preview-topbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin:0 2px 12px 2px;
   }
   .preview-label {
     font-size:12px;
-    color:#999;
-    margin:0 0 10px 4px;
+    color:#8A93A3;
     text-transform:uppercase;
-    letter-spacing:0.4px;
+    letter-spacing:0.5px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .live-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:#1a8a4a;
+    box-shadow:0 0 0 3px rgba(26,138,74,0.15);
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; }
+    50% { opacity:.45; }
+  }
+  .browser-chrome {
+    background:#FFFFFF;
+    border-radius:14px;
+    border:1px solid #E7EAF0;
+    box-shadow:0 1px 2px rgba(16,24,40,0.04), 0 12px 32px rgba(16,24,40,0.07);
+    overflow:hidden;
+  }
+  .browser-chrome-bar {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:11px 14px;
+    background:#F6F7F9;
+    border-bottom:1px solid #ECEEF2;
+  }
+  .browser-chrome-bar .dot { width:9px; height:9px; border-radius:50%; }
+  .browser-chrome-body { padding:18px; background:#F2F4F7; }
+
+  /* Manual builder */
+  .manual-grid { grid-template-columns: 280px 1fr; align-items:start; }
+  @media (max-width: 860px) { .manual-grid { grid-template-columns: 1fr; } }
+
+  .page-list { margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
+  .page-item {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px;
+    border-radius:12px;
+    cursor:pointer;
+    background:#FFFFFF;
+    border:1.5px solid #EAEDF2;
+    transition:border-color .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .page-item:hover { border-color:#D7E6FD; box-shadow:0 2px 8px rgba(16,24,40,0.06); }
+  .page-item.active { background:#F5F9FF; border-color:#2B7CF6; box-shadow:0 4px 14px rgba(43,124,246,0.16); }
+  .page-thumb {
+    width:34px; height:46px;
+    flex:none;
+    border-radius:4px;
+    background:#FFFFFF;
+    border:1px solid #E3E6EC;
+    box-shadow:0 1px 3px rgba(16,24,40,0.10);
+    overflow:hidden;
+    position:relative;
+  }
+  .page-thumb-band { height:14px; background:linear-gradient(120deg,#2B7CF6,#6AA6FF); }
+  .page-thumb.is-cover .page-thumb-band { height:100%; }
+  .page-thumb-num {
+    position:absolute; right:3px; bottom:2px;
+    font-size:7px; font-weight:800; color:#AAB2C0;
+  }
+  .page-thumb.is-cover .page-thumb-num { color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.15); }
+  .page-item-title {
+    flex:1;
+    font-size:12.5px;
     font-weight:700;
+    color:#333;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .page-item-delete {
+    width:18px; height:18px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#B0B8C4;
+    font-size:14px;
+    line-height:1;
+    flex:none;
+  }
+  .page-item-delete:hover { background:#FBE1E1; color:#C0392B; }
+
+  .editor-panel {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    background:linear-gradient(180deg,#E7ECF6 0%, #DCE4F1 100%);
+    border-radius:18px;
+    padding:28px 18px 36px;
+    border:1px solid #E2E7F0;
+  }
+  .page-toolbar-wrap { width:100%; max-width:640px; margin-bottom:16px; }
+  .toolbar {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:4px;
+    background:#FFFFFF;
+    border:1.5px solid #E7EAF0;
+    border-radius:11px;
+    padding:8px 10px;
+    box-shadow:0 1px 2px rgba(16,24,40,0.04);
+  }
+  .toolbar button {
+    border:1.5px solid #E7EAF0;
+    background:#FAFBFC;
+    color:#3A4150;
+    font-size:12px;
+    font-weight:700;
+    font-family:inherit;
+    padding:6px 10px;
+    border-radius:7px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .toolbar button:hover { background:#F0F2F6; border-color:#D7DCE5; }
+  .toolbar-sep { width:1px; height:20px; background:#EAEDF2; margin:0 4px; }
+
+  /* The "page" itself — styled like a physical handbook page, fixed to A4 proportions */
+  .page-card {
+    width:100%;
+    max-width:640px;
+    aspect-ratio:1 / 1.4142;
+    display:flex;
+    flex-direction:column;
+    background:#FFFFFF;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 2px 4px rgba(16,24,40,0.08), 0 24px 48px -12px rgba(16,24,40,0.22);
+    position:relative;
+  }
+  .page-card-header {
+    flex:none;
+    position:relative;
+    background:linear-gradient(120deg,#2B7CF6 0%, #5FA3FF 100%);
+    padding:24px 34px 26px 34px;
+  }
+  .page-card.is-cover .page-card-header { display:none; }
+  .page-card.is-cover .editor { padding:0; }
+  .page-card.is-cover .page-card-footer { display:none; }
+  .page-num-badge {
+    position:absolute;
+    top:16px; right:18px;
+    background:rgba(255,255,255,0.22);
+    color:#fff;
+    font-size:11px;
+    font-weight:800;
+    padding:5px 12px;
+    border-radius:999px;
+    letter-spacing:0.3px;
+  }
+  .page-card-header input.page-title-input {
+    width:85%;
+    border:none;
+    border-radius:0;
+    background:transparent;
+    font-size:21px;
+    font-weight:800;
+    font-family:inherit;
+    color:#FFFFFF;
+    padding:4px 2px;
+  }
+  .page-card-header input.page-title-input::placeholder { color:rgba(255,255,255,0.75); }
+  .page-card-header input.page-title-input:focus { outline:none; background:transparent; box-shadow:none; }
+  .page-card-header input.page-title-input:hover { border-color:transparent; }
+
+  .editor {
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    padding:36px 40px 12px 40px;
+    font-size:14.5px;
+    line-height:1.85;
+    color:#2A2E36;
+    outline:none;
+  }
+  .editor h2 {
+    font-size:18px; font-weight:800; margin:22px 0 10px 0; color:#1A1A1A;
+    padding-left:12px; border-left:4px solid #2B7CF6;
+  }
+  .editor h2:first-child { margin-top:0; }
+  .editor p { margin:0 0 14px 0; }
+  .editor ul, .editor ol { margin:0 0 14px 0; padding-left:22px; }
+  .editor li { margin-bottom:4px; }
+  .editor img { max-width:100%; border-radius:8px; margin:14px 0; display:block; box-shadow:0 4px 14px rgba(16,24,40,0.10); }
+  .editor:empty:before {
+    content:attr(data-hint);
+    color:#B0B8C4;
+  }
+  /* Inserted images: resizable (drag bottom-right corner) and draggable to reposition */
+  .editor .img-wrap {
+    display:inline-block;
+    position:relative;
+    overflow:hidden;
+    resize:both;
+    min-width:60px;
+    min-height:60px;
+    max-width:100%;
+    vertical-align:top;
+    margin:6px 4px;
+    border-radius:8px;
+    box-shadow:0 4px 14px rgba(16,24,40,0.10);
+    cursor:move;
+  }
+  .editor .img-wrap:hover { outline:2px dashed #2B7CF6; outline-offset:2px; }
+  .editor .img-wrap img {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    pointer-events:none;
+  }
+  .page-card-footer {
+    flex:none;
+    text-align:center;
+    padding:10px 0 24px;
+    font-size:11px;
+    font-weight:700;
+    color:#C2C9D4;
+    letter-spacing:0.3px;
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Welcome Email Generator</h1>
-    <p class="sub">กรอกข้อมูลลูกค้าใหม่ → ดูตัวอย่างอีเมลแบบสด → กดคัดลอกไปวางใน Gmail/Outlook ได้เลย ไม่ต้องแก้โค้ด</p>
-
-    <div class="grid">
-      <div class="panel">
-        <div class="field">
-          <label for="custName">ชื่อลูกค้า / ชื่อร้าน</label>
-          <input type="text" id="custName" placeholder="เช่น ร้านกาแฟ Rathakun" oninput="render()">
-        </div>
-        <div class="field">
-          <label for="subdomain">Subdomain</label>
-          <input type="text" id="subdomain" placeholder="เช่น rathakun" oninput="render()">
-          <div class="hint">จะกลายเป็นลิงก์ https://<b>[subdomain]</b>.easy-crm.co/...</div>
-        </div>
-        <div class="field">
-          <label for="username">Username</label>
-          <input type="text" id="username" value="admin" oninput="render()">
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="text" id="password" placeholder="รหัสผ่านที่ตั้งให้ลูกค้า" oninput="render()">
-        </div>
-
-        <button class="btn btn-primary" onclick="copyEmail()">คัดลอกอีเมล (วางใน Gmail ได้เลย)</button>
-        <button class="btn btn-secondary" onclick="downloadEmail()">ดาวน์โหลดเป็นไฟล์ .html</button>
-        <div class="status" id="status"></div>
-      </div>
-
-      <div class="preview-shell">
-        <p class="preview-label">ตัวอย่างอีเมล (Live Preview)</p>
-        <div id="emailContent"></div>
-      </div>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <img src="data:image/png;base64,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" alt="Easy CRM">
+      <div class="topbar-title">Easy CRM</div>
+      <select id="toolSelect" class="tool-select" onchange="switchTool(this.value)">
+        <option value="welcome-email">Welcome Email Generator</option>
+        <option value="manual">คู่มือการใช้งานลูกค้า</option>
+      </select>
     </div>
+  </div>
+
+  <div class="wrap">
+
+    <section id="tool-welcome-email" class="tool-section active">
+      <h1>สร้างอีเมล Welcome สำหรับลูกค้าใหม่</h1>
+
+      <div class="grid">
+        <div class="panel">
+          <p class="panel-heading"><span class="dot"></span> ข้อมูลลูกค้า</p>
+          <div class="field">
+            <label for="custName">ชื่อลูกค้า / ชื่อร้าน</label>
+            <input type="text" id="custName" placeholder="เช่น ร้านกาแฟ Rathakun" oninput="render()">
+          </div>
+          <div class="field">
+            <label for="subdomain">Subdomain</label>
+            <input type="text" id="subdomain" placeholder="เช่น rathakun" oninput="render()">
+          </div>
+          <div class="field">
+            <label for="username">Username</label>
+            <input type="text" id="username" value="admin" oninput="render()">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="text" id="password" placeholder="รหัสผ่านที่ตั้งให้ลูกค้า" oninput="render()">
+          </div>
+
+          <button class="btn btn-primary" onclick="copyEmail()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 5h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 5V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            คัดลอกอีเมล
+          </button>
+          <button class="btn btn-secondary" onclick="downloadEmail()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            ดาวน์โหลดเป็นไฟล์ .html
+          </button>
+          <div class="status" id="status"></div>
+        </div>
+
+        <div class="preview-shell">
+          <div class="preview-topbar">
+            <p class="preview-label"><span class="live-dot"></span>ตัวอย่างอีเมล (Live Preview)</p>
+          </div>
+          <div class="browser-chrome">
+            <div class="browser-chrome-bar">
+              <span class="dot" style="background:#FF5F57;"></span>
+              <span class="dot" style="background:#FEBC2E;"></span>
+              <span class="dot" style="background:#28C840;"></span>
+            </div>
+            <div class="browser-chrome-body">
+              <div id="emailContent"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tool-manual" class="tool-section">
+      <h1>สร้างคู่มือการใช้งานสำหรับลูกค้า</h1>
+
+      <div class="grid manual-grid">
+        <div class="panel">
+          <p class="panel-heading"><span class="dot"></span> หน้าคู่มือ</p>
+          <div id="pageList" class="page-list"></div>
+          <button class="btn btn-secondary" onclick="addPage()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            เพิ่มหน้าใหม่
+          </button>
+
+          <div style="height:1px;background:#F0F2F6;margin:18px 0;"></div>
+
+          <button class="btn btn-secondary" onclick="previewEbook()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>
+            ดูตัวอย่างเป็นเล่ม (พลิกหน้าได้)
+          </button>
+          <button class="btn btn-primary" onclick="copyManual()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 5h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 5V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            คัดลอกคู่มือทั้งหมด
+          </button>
+          <button class="btn btn-secondary" onclick="downloadManual()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            ดาวน์โหลดเป็น eBook (.html)
+          </button>
+          <p class="hint" style="margin-top:6px;">ไฟล์ eBook เปิดในเบราว์เซอร์ได้เลย พลิกหน้าด้วยปุ่มลูกศรหรือคีย์บอร์ด ไม่ต้องลงโปรแกรมเพิ่ม</p>
+          <div class="status" id="manualStatus"></div>
+        </div>
+
+        <div class="editor-panel">
+          <div class="page-toolbar-wrap">
+            <div class="toolbar">
+              <button type="button" onclick="execCmd('bold')" title="ตัวหนา"><b>B</b></button>
+              <button type="button" onclick="execCmd('italic')" title="ตัวเอียง"><i>I</i></button>
+              <span class="toolbar-sep"></span>
+              <button type="button" onclick="execCmd('formatBlock','H2')" title="หัวข้อ">H2</button>
+              <button type="button" onclick="execCmd('formatBlock','P')" title="ข้อความปกติ">P</button>
+              <span class="toolbar-sep"></span>
+              <button type="button" onclick="execCmd('insertUnorderedList')" title="บูลเลต">• List</button>
+              <button type="button" onclick="execCmd('insertOrderedList')" title="ลำดับเลข">1. List</button>
+              <span class="toolbar-sep"></span>
+              <button type="button" onclick="triggerImageUpload()" title="แทรกรูปภาพ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="10" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-4 4 3 3-2 4 3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                แทรกรูป
+              </button>
+              <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+            </div>
+          </div>
+
+          <div class="page-card" id="pageCard">
+            <div class="page-card-header">
+              <span class="page-num-badge" id="pageNumBadge">หน้า 1/8</span>
+              <input type="text" id="pageTitleInput" class="page-title-input" placeholder="ชื่อหน้า" oninput="updateActiveTitle(this.value)">
+            </div>
+            <div id="editor" class="editor" contenteditable="true" oninput="saveActivePageContent()"></div>
+            <div class="page-card-footer">Easy CRM · คู่มือการใช้งาน</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
 <script>
@@ -298,7 +753,492 @@ function downloadEmail() {
   URL.revokeObjectURL(url);
 }
 
+const DEFAULT_HINT = 'เริ่มพิมพ์เนื้อหาที่นี่... (แทรกรูปได้จากปุ่ม "แทรกรูป")';
+
+let manualPages = [
+  { id: 1, title: 'หน้าปก', html: '', hint: 'หน้าปกเป็นหน้าเปล่า แทรกรูปภาพหน้าปกสำเร็จรูปได้เลยจากปุ่ม "แทรกรูป" แล้วลากมุมเพื่อปรับขนาด หรือลากรูปเพื่อย้ายตำแหน่งได้' },
+  { id: 2, title: 'เริ่มต้นใช้งาน', html: '', hint: 'ใส่ลิงก์หรือช่องทางเข้าใช้งานระบบ เช่น ลิงก์หน้าสมาชิก หรือ LINE OA ของร้าน' },
+  { id: 3, title: 'ขั้นตอนที่ 1: สมัครสมาชิก', html: '', hint: 'อธิบายวิธีสมัครสมาชิกทีละขั้นตอน แนบภาพหน้าจอประกอบได้' },
+  { id: 4, title: 'ขั้นตอนที่ 2: สะสมคะแนน', html: '', hint: 'อธิบายวิธีสะสมคะแนน เช่น การส่งสลิปเข้า LINE' },
+  { id: 5, title: 'ขั้นตอนที่ 3: ตรวจสอบคะแนนสะสม', html: '', hint: 'อธิบายวิธีดูคะแนนสะสมและบัตรสมาชิกดิจิทัล' },
+  { id: 6, title: 'ขั้นตอนที่ 4: ใช้คูปอง/สิทธิพิเศษ', html: '', hint: 'อธิบายวิธีใช้คูปองหรือสิทธิพิเศษของร้าน' },
+  { id: 7, title: 'คำถามที่พบบ่อย (FAQ)', html: '', hint: 'ใส่คำถาม-คำตอบที่ลูกค้ามักถามบ่อย' },
+  { id: 8, title: 'ช่องทางติดต่อ', html: '', hint: 'ใส่ช่องทางติดต่อร้าน เช่น LINE OA เบอร์โทร ที่อยู่' }
+];
+let activePageId = 1;
+let nextPageId = 9;
+let savedRange = null;
+
+function findPage(id) {
+  return manualPages.find(p => p.id === id);
+}
+
+function renderPageList() {
+  const listEl = document.getElementById('pageList');
+  listEl.innerHTML = '';
+  manualPages.forEach((page, idx) => {
+    const item = document.createElement('div');
+    item.className = 'page-item' + (page.id === activePageId ? ' active' : '');
+    item.onclick = () => selectPage(page.id);
+
+    const thumb = document.createElement('span');
+    thumb.className = 'page-thumb' + (idx === 0 ? ' is-cover' : '');
+    const band = document.createElement('span');
+    band.className = 'page-thumb-band';
+    const num = document.createElement('span');
+    num.className = 'page-thumb-num';
+    num.textContent = idx + 1;
+    thumb.appendChild(band);
+    thumb.appendChild(num);
+
+    const title = document.createElement('span');
+    title.className = 'page-item-title';
+    title.textContent = page.title || 'ไม่มีชื่อ';
+
+    item.appendChild(thumb);
+    item.appendChild(title);
+
+    if (manualPages.length > 1) {
+      const del = document.createElement('span');
+      del.className = 'page-item-delete';
+      del.innerHTML = '&times;';
+      del.onclick = (e) => { e.stopPropagation(); deletePage(page.id); };
+      item.appendChild(del);
+    }
+
+    listEl.appendChild(item);
+  });
+}
+
+function updatePageNumBadge() {
+  const idx = manualPages.findIndex(p => p.id === activePageId);
+  const badge = document.getElementById('pageNumBadge');
+  if (badge && idx > -1) badge.textContent = 'หน้า ' + (idx + 1) + '/' + manualPages.length;
+  const cardEl = document.getElementById('pageCard');
+  if (cardEl) cardEl.classList.toggle('is-cover', idx === 0);
+}
+
+function selectPage(id) {
+  saveActivePageContent();
+  activePageId = id;
+  const page = findPage(id);
+  document.getElementById('pageTitleInput').value = page.title;
+  const editorEl = document.getElementById('editor');
+  editorEl.innerHTML = page.html;
+  editorEl.dataset.hint = page.hint || DEFAULT_HINT;
+  renderPageList();
+  updatePageNumBadge();
+}
+
+function addPage() {
+  saveActivePageContent();
+  const page = { id: nextPageId, title: 'หน้าที่ ' + nextPageId, html: '', hint: DEFAULT_HINT };
+  nextPageId += 1;
+  manualPages.push(page);
+  selectPage(page.id);
+}
+
+function deletePage(id) {
+  if (manualPages.length <= 1) return;
+  const idx = manualPages.findIndex(p => p.id === id);
+  manualPages = manualPages.filter(p => p.id !== id);
+  if (activePageId === id) {
+    const next = manualPages[Math.max(0, idx - 1)];
+    activePageId = next.id;
+    document.getElementById('pageTitleInput').value = next.title;
+    const editorEl = document.getElementById('editor');
+    editorEl.innerHTML = next.html;
+    editorEl.dataset.hint = next.hint || DEFAULT_HINT;
+  }
+  renderPageList();
+  updatePageNumBadge();
+}
+
+function updateActiveTitle(value) {
+  const page = findPage(activePageId);
+  if (page) {
+    page.title = value;
+    renderPageList();
+  }
+}
+
+function saveActivePageContent() {
+  const page = findPage(activePageId);
+  if (page) {
+    page.html = document.getElementById('editor').innerHTML;
+  }
+}
+
+function execCmd(cmd, value) {
+  document.getElementById('editor').focus();
+  document.execCommand(cmd, false, value || null);
+  saveActivePageContent();
+}
+
+function triggerImageUpload() {
+  const editor = document.getElementById('editor');
+  editor.focus();
+  const sel = window.getSelection();
+  savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imageInput').click();
+}
+
+function insertImageWrap(src, w, h) {
+  const editor = document.getElementById('editor');
+  editor.focus();
+  const sel = window.getSelection();
+  if (savedRange) {
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+  const html = '<span class="img-wrap" contenteditable="false" draggable="true" style="width:' + w + 'px;height:' + h + 'px;"><img src="' + src + '" alt="" draggable="false"></span>&nbsp;';
+  document.execCommand('insertHTML', false, html);
+  saveActivePageContent();
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const probe = new Image();
+    probe.onload = function () {
+      const maxW = 420;
+      let w = probe.naturalWidth || maxW;
+      let h = probe.naturalHeight || Math.round(maxW * 0.7);
+      if (w > maxW) {
+        h = Math.round(h * (maxW / w));
+        w = maxW;
+      }
+      insertImageWrap(e.target.result, w, h);
+    };
+    probe.onerror = function () {
+      insertImageWrap(e.target.result, 320, 220);
+    };
+    probe.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Drag-to-reposition: images can be dragged and dropped anywhere within the page content
+let draggedImgWrap = null;
+function initImageDragMove() {
+  const editor = document.getElementById('editor');
+  editor.addEventListener('dragstart', function (e) {
+    const wrap = e.target.closest && e.target.closest('.img-wrap');
+    if (wrap) {
+      draggedImgWrap = wrap;
+      e.dataTransfer.effectAllowed = 'move';
+    }
+  });
+  editor.addEventListener('dragover', function (e) {
+    if (draggedImgWrap) e.preventDefault();
+  });
+  editor.addEventListener('drop', function (e) {
+    if (!draggedImgWrap) return;
+    e.preventDefault();
+    let range = null;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    } else if (document.caretPositionFromPoint) {
+      const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+      }
+    }
+    if (range) range.insertNode(draggedImgWrap);
+    draggedImgWrap = null;
+    saveActivePageContent();
+  });
+}
+
+// Strip interactive-only attributes and inline the necessary display rules
+// so inserted images still render correctly when pasted outside this app (e.g. Gmail).
+function inlineImageWraps(html) {
+  if (!html) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('.img-wrap').forEach(function (wrap) {
+    const existing = wrap.getAttribute('style') || '';
+    wrap.setAttribute('style', 'display:inline-block;overflow:hidden;border-radius:8px;margin:6px 4px;vertical-align:top;' + existing);
+    wrap.removeAttribute('contenteditable');
+    wrap.removeAttribute('draggable');
+    const img = wrap.querySelector('img');
+    if (img) img.setAttribute('style', 'width:100%;height:100%;object-fit:cover;display:block;');
+  });
+  return tmp.innerHTML;
+}
+
+function buildManualFullHTML() {
+  saveActivePageContent();
+  const total = manualPages.length;
+  return manualPages.map((page, idx) => {
+    const isCover = idx === 0;
+    const headerHtml = isCover ? '' : `
+      <div style="background:linear-gradient(120deg,#2B7CF6 0%,#5FA3FF 100%);padding:24px 36px 26px 36px;">
+        <table role="presentation" width="100%" style="border-collapse:collapse;"><tr>
+          <td style="font-size:22px;font-weight:800;color:#FFFFFF;vertical-align:middle;">${page.title ? page.title.replace(/</g,'&lt;') : ''}</td>
+          <td style="text-align:right;vertical-align:middle;white-space:nowrap;">
+            <span style="display:inline-block;background:rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px;letter-spacing:0.3px;">หน้า ${idx + 1}/${total}</span>
+          </td>
+        </tr></table>
+      </div>`;
+    const footerHtml = isCover ? '' : `<p style="text-align:center;padding:8px 0 22px;margin:0;font-size:11px;font-weight:700;color:#C2C9D4;letter-spacing:0.3px;">Easy CRM · คู่มือการใช้งาน</p>`;
+    const bodyPadding = isCover ? '0' : '34px 38px 18px 38px';
+    return `
+    <div style="max-width:680px;margin:0 auto 36px auto;background:#FFFFFF;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(16,24,40,0.12);font-family:'Sarabun','Segoe UI',Arial,sans-serif;${idx > 0 ? 'page-break-before:always;' : ''}">${headerHtml}
+      <div style="padding:${bodyPadding};font-size:14.5px;line-height:1.85;color:#2A2E36;">${inlineImageWraps(page.html)}</div>${footerHtml}
+    </div>`;
+  }).join('');
+}
+
+const EBOOK_CSS = `
+:root{--brand:#2B7CF6;--brand2:#5FA3FF;}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Sarabun','Segoe UI',Arial,sans-serif;
+  background:linear-gradient(180deg,#E7ECF6 0%,#DCE4F1 100%);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:32px 16px;
+}
+.book-stage{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  width:100%;
+  max-width:820px;
+}
+.book-nav{
+  flex:none;
+  width:46px;height:46px;
+  border-radius:50%;
+  border:none;
+  background:#FFFFFF;
+  color:#2B7CF6;
+  box-shadow:0 4px 14px rgba(16,24,40,0.15);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.book-nav:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,0.18);}
+.book-nav:disabled{opacity:.35;cursor:default;transform:none;}
+.book-frame{width:100%;max-width:640px;perspective:1800px;}
+.book-page{
+  background:#FFFFFF;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 2px 4px rgba(16,24,40,0.08), 0 30px 60px -14px rgba(16,24,40,0.28);
+  aspect-ratio:1 / 1.4142;
+  display:flex;
+  flex-direction:column;
+  transform-origin:left center;
+  transition:transform .38s ease, opacity .38s ease;
+}
+.book-page.turn-out-next{transform:rotateY(-95deg);opacity:0;}
+.book-page.turn-out-prev{transform-origin:right center;transform:rotateY(95deg);opacity:0;}
+.book-page-header{
+  background:linear-gradient(120deg,var(--brand) 0%, var(--brand2) 100%);
+  padding:22px 32px 24px;
+  flex:none;
+  position:relative;
+}
+.book-page-header h1{margin:0;font-size:20px;font-weight:800;color:#fff;padding-right:70px;}
+.book-page-badge{
+  position:absolute;top:16px;right:18px;
+  background:rgba(255,255,255,0.22);color:#fff;
+  font-size:11px;font-weight:800;padding:5px 12px;border-radius:999px;white-space:nowrap;
+}
+.book-page-body{
+  padding:30px 34px;
+  overflow-y:auto;
+  font-size:14.5px;line-height:1.85;color:#2A2E36;flex:1;min-height:0;
+}
+.book-page.cover .book-page-body{padding:0;}
+.book-page-body h2{font-size:18px;font-weight:800;margin:20px 0 10px 0;color:#1A1A1A;padding-left:12px;border-left:4px solid var(--brand);}
+.book-page-body h2:first-child{margin-top:0;}
+.book-page-body p{margin:0 0 14px 0;}
+.book-page-body ul,.book-page-body ol{margin:0 0 14px 0;padding-left:22px;}
+.book-page-body img{max-width:100%;border-radius:8px;margin:14px 0;display:block;}
+.img-wrap{display:inline-block;overflow:hidden;border-radius:8px;margin:6px 4px;vertical-align:top;}
+.img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+.book-footer{margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.book-dots{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:400px;}
+.book-dot{width:8px;height:8px;border-radius:50%;background:#C7D0E0;border:none;cursor:pointer;padding:0;transition:background .15s ease, transform .15s ease;}
+.book-dot.active{background:var(--brand);transform:scale(1.25);}
+.book-counter{font-size:12px;font-weight:700;color:#7C8698;letter-spacing:.3px;}
+@media (max-width:700px){
+  .book-nav{width:38px;height:38px;}
+  .book-page-body{padding:24px 22px;}
+}
+`;
+
+const EBOOK_JS = `
+var idx = 0;
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function renderPage(){
+  var p = PAGES[idx];
+  var pageEl = document.getElementById('bkPage');
+  pageEl.classList.toggle('cover', idx === 0);
+  var headerHtml = idx === 0 ? '' : ('<div class="book-page-header"><span class="book-page-badge">หน้า ' + (idx+1) + '/' + PAGES.length + '</span><h1>' + esc(p.title) + '</h1></div>');
+  pageEl.innerHTML = headerHtml + '<div class="book-page-body">' + (p.html || '') + '</div>';
+  document.getElementById('bkCounter').textContent = 'หน้า ' + (idx+1) + ' จาก ' + PAGES.length;
+  document.getElementById('bkPrev').disabled = (idx === 0);
+  document.getElementById('bkNext').disabled = (idx === PAGES.length - 1);
+  renderDots();
+}
+function renderDots(){
+  var dotsEl = document.getElementById('bkDots');
+  dotsEl.innerHTML = '';
+  PAGES.forEach(function(p, i){
+    var d = document.createElement('button');
+    d.className = 'book-dot' + (i === idx ? ' active' : '');
+    d.setAttribute('aria-label', 'ไปหน้า ' + (i+1));
+    d.onclick = function(){ goTo(i); };
+    dotsEl.appendChild(d);
+  });
+}
+function goTo(newIdx){
+  if(newIdx === idx || newIdx < 0 || newIdx > PAGES.length - 1) return;
+  var dir = newIdx > idx ? 'next' : 'prev';
+  var pageEl = document.getElementById('bkPage');
+  pageEl.classList.add(dir === 'next' ? 'turn-out-next' : 'turn-out-prev');
+  setTimeout(function(){
+    idx = newIdx;
+    renderPage();
+    pageEl.classList.remove('turn-out-next','turn-out-prev');
+  }, 380);
+}
+document.getElementById('bkPrev').addEventListener('click', function(){ goTo(idx - 1); });
+document.getElementById('bkNext').addEventListener('click', function(){ goTo(idx + 1); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'ArrowRight') goTo(idx + 1);
+  if(e.key === 'ArrowLeft') goTo(idx - 1);
+});
+renderPage();
+`;
+
+function buildEbookHTML() {
+  saveActivePageContent();
+  const pages = manualPages.map(p => ({ title: p.title || '', html: p.html || '' }));
+  const pagesJSON = JSON.stringify(pages).replace(/<\/script/gi, '<\\/script');
+  const chevronLeft = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const chevronRight = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  return '<!DOCTYPE html>\n'
+    + '<html lang="th">\n'
+    + '<head>\n'
+    + '<meta charset="UTF-8">\n'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+    + '<title>คู่มือการใช้งาน — Easy CRM</title>\n'
+    + '<style>' + EBOOK_CSS + '</style>\n'
+    + '</head>\n'
+    + '<body>\n'
+    + '<div class="book-stage">\n'
+    + '  <button class="book-nav" id="bkPrev" aria-label="หน้าก่อนหน้า">' + chevronLeft + '</button>\n'
+    + '  <div class="book-frame"><div class="book-page" id="bkPage"></div></div>\n'
+    + '  <button class="book-nav" id="bkNext" aria-label="หน้าถัดไป">' + chevronRight + '</button>\n'
+    + '</div>\n'
+    + '<div class="book-footer">\n'
+    + '  <div class="book-dots" id="bkDots"></div>\n'
+    + '  <div class="book-counter" id="bkCounter"></div>\n'
+    + '</div>\n'
+    + '<' + 'script>\n'
+    + 'var PAGES = ' + pagesJSON + ';\n'
+    + EBOOK_JS
+    + '<' + '/script>\n'
+    + '</body>\n'
+    + '</html>';
+}
+
+function previewEbook() {
+  const html = buildEbookHTML();
+  const blob = new Blob([html], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function copyManual() {
+  const html = buildManualFullHTML();
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const text = tmp.innerText;
+  const statusEl = document.getElementById('manualStatus');
+
+  try {
+    const item = new ClipboardItem({
+      'text/html': new Blob([html], {type: 'text/html'}),
+      'text/plain': new Blob([text], {type: 'text/plain'})
+    });
+    await navigator.clipboard.write([item]);
+    statusEl.style.color = '#1a8a4a';
+    statusEl.textContent = '✓ คัดลอกแล้ว ไปวางได้เลย';
+    return;
+  } catch (err) {
+    try {
+      document.body.appendChild(tmp);
+      const range = document.createRange();
+      range.selectNodeContents(tmp);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const ok = document.execCommand('copy');
+      sel.removeAllRanges();
+      document.body.removeChild(tmp);
+      if (ok) {
+        statusEl.style.color = '#1a8a4a';
+        statusEl.textContent = '✓ คัดลอกแล้ว ไปวางได้เลย';
+        return;
+      }
+      throw new Error('execCommand failed');
+    } catch (err2) {
+      statusEl.style.color = '#c0392b';
+      statusEl.textContent = 'คัดลอกอัตโนมัติไม่สำเร็จ ลองดาวน์โหลดไฟล์แทน';
+    }
+  }
+}
+
+function downloadManual() {
+  const fullHtml = buildEbookHTML();
+  const blob = new Blob([fullHtml], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'คู่มือการใช้งาน_ebook.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function initManualEditor() {
+  document.getElementById('pageTitleInput').value = manualPages[0].title;
+  const editorEl = document.getElementById('editor');
+  editorEl.innerHTML = manualPages[0].html;
+  editorEl.dataset.hint = manualPages[0].hint || DEFAULT_HINT;
+  renderPageList();
+  updatePageNumBadge();
+  try { document.execCommand('enableObjectResizing', false); } catch (e) {}
+  initImageDragMove();
+}
+
+function switchTool(tool) {
+  document.querySelectorAll('.tool-section').forEach(function (section) {
+    section.classList.toggle('active', section.id === 'tool-' + tool);
+  });
+}
+
 render();
+initManualEditor();
 </script>
 </body>
 </html>
