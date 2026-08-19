@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy CRM — Welcome Email Generator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:0;
+    font-family:'Sarabun','Segoe UI',Arial,sans-serif;
+    background:#F2F4F7;
+    color:#1A1A1A;
+  }
+  .wrap { max-width:1200px; margin:0 auto; padding:24px 16px 60px; }
+  h1 { font-size:20px; margin:0 0 4px 0; }
+  .sub { color:#666; font-size:13px; margin:0 0 24px 0; }
+  .grid {
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width: 820px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background:#FFFFFF;
+    border-radius:10px;
+    padding:20px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.08);
+  }
+  .field { margin-bottom:16px; }
+  label { display:block; font-size:13px; font-weight:700; color:#333; margin-bottom:6px; }
+  input[type=text] {
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #DDD;
+    border-radius:6px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  input[type=text]:focus { outline:2px solid #2B7CF6; border-color:#2B7CF6; }
+  .hint { font-size:11px; color:#999; margin-top:4px; }
+  .btn {
+    width:100%;
+    padding:12px 16px;
+    border:none;
+    border-radius:6px;
+    font-size:14px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .btn-primary { background:#2B7CF6; color:#fff; }
+  .btn-primary:hover { background:#1F63C4; }
+  .btn-secondary { background:#F0F2F5; color:#333; }
+  .btn-secondary:hover { background:#E4E7EB; }
+  .status {
+    font-size:12px;
+    margin-top:10px;
+    min-height:16px;
+    color:#1a8a4a;
+    font-weight:700;
+  }
+  .preview-shell {
+    background:#F2F4F7;
+    border-radius:10px;
+    padding:20px;
+  }
+  .preview-label {
+    font-size:12px;
+    color:#999;
+    margin:0 0 10px 4px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    font-weight:700;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Welcome Email Generator</h1>
+    <p class="sub">กรอกข้อมูลลูกค้าใหม่ → ดูตัวอย่างอีเมลแบบสด → กดคัดลอกไปวางใน Gmail/Outlook ได้เลย ไม่ต้องแก้โค้ด</p>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="field">
+          <label for="custName">ชื่อลูกค้า / ชื่อร้าน</label>
+          <input type="text" id="custName" placeholder="เช่น ร้านกาแฟ Rathakun" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="subdomain">Subdomain</label>
+          <input type="text" id="subdomain" placeholder="เช่น rathakun" oninput="render()">
+          <div class="hint">จะกลายเป็นลิงก์ https://<b>[subdomain]</b>.easy-crm.co/...</div>
+        </div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" value="admin" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="text" id="password" placeholder="รหัสผ่านที่ตั้งให้ลูกค้า" oninput="render()">
+        </div>
+
+        <button class="btn btn-primary" onclick="copyEmail()">คัดลอกอีเมล (วางใน Gmail ได้เลย)</button>
+        <button class="btn btn-secondary" onclick="downloadEmail()">ดาวน์โหลดเป็นไฟล์ .html</button>
+        <div class="status" id="status"></div>
+      </div>
+
+      <div class="preview-shell">
+        <p class="preview-label">ตัวอย่างอีเมล (Live Preview)</p>
+        <div id="emailContent"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAADwCAIAAACxN37FAAAv1UlEQVR42u19eZxlVXXut9Y+w51q7rmhG6FpG2jmbiYBFRCMAzKohEREAc3wxCGJQxKDeYm+PBJ9RtE4vMQ8R0BABJ8TRAVFEWUeGptR5h6rq+rO5+y91vvj3Ft1q3qgGlpfVd39/eoH9Ttddevefb6z9trfmkhV4eExV8B+CTw8oT08PKE9PDyhPTw8oT08oT08PKE9PDyhPTw8oT08PKE9PKE9PDyhPTw8oT08PKE9PDyhPTyhPTw8oT08PKE9PDyhPTw8oT08oT08PKE9PDyhPTw8oT08PKE9PKE9PDyhPTw8oT08PKE9PDyhPTyhPTw8oT08PKE9PDyhPTw8oT08oT08PKE9PDyhPTw8oT08oT08PKE9PDyhPTw8oT08PKE9PKE9PDyhPTxmFAK/BOMQhWrre6KJ6wRo+xt0fP//8SKQvVUFQERM/u61b5aO38NuhUJFiGkSiTuYM0Nv3KT3qhBVIhAReUJ3MZUhoqZl39wTI+ldz9l7N9afHAm2VTkVSwqlqXZ6Cq1+Pxc7/5WgHFB/0azocYcuDFctCffrjzPvsSkaMY3bcsKU7zyh5y6ZrSBgArChlnzzntr169J7no63VAOoQANoAKaZyIPM02ALBZwgbPTnceQSPvNgnL06XlTKA3AC5g4z7gk95+FEDNPGenrZz8v/cZfdsLEXJs8hQs5uvWR+tKrOUCa0OSqg1JFahdSXDVTeeVR08csKvfkoUQQEnux/e0LPRcusogATf+uB0Q9d33h4ax9yuSCEQlRIt/vpGe9GKwHMBCabAo3qqgWVf3pt4YwDi6pQKJHRbhKzuovQomDVBO5D39/6rz+JNeiPcnCSyRtEOksNGbWVGRcwN5uArf7NScnf/0FfqGTBhryFnqtshqs4edsVI9fcEeeKJWGyLfGLOo9ipKSkU85n4wfESZraLi92vsKLvdj5TnZ50RAckZQb56+tfu7NpRzFipZL3Q3olg+qCiiqouddvu2ae4phbyEFpRPeaMs8a9vp0A7vo/09KU08/bu+CNLtXmqHrz/9i9j5RQFJ5nwIUQpSuGAg+vKdhQuuGE3Uwtnu2YW7xUI7UcP2z67Z8vlbeuK+YupUASIaN3E045XnXQsfrceg/WEIEhrTHG381Ssq/3J6vxNjuiP6wl3DZnzp7vIXbimGvaXUZT4GdVJ4Nj/WNOFGZ18KKFunUW/uE7eYr99fMUwi6gk9R5wNJjwx0vjItdBir6jrpu0XCPs/8B19upIQSLpgN577hBYoET5+U/XpSt6ECqXuOfSLIgzp2eHix382RjxJhFRP6NmqbBA9tLnxtTtCU8iRlTl8L7fbmlRVnVOTC756Gx7b1mg5HjqXV4Dn+k0FAf/56/pINQ4YApYuy5hVgAwNj/V+7Y4m4KR1epyzmxTP7XtpGGXrrntQkDMqECIlaJdlpAkEUXjdA67prGHSSYKIJ/QsupECAPc8VVu/NaYodMjU4U7huDvOhoIgpPs2R3dvcATInE7vmNsWWgC97Rkn9SjUdgQFXQdSBIS0yb96utnyw7wPPStvJAjA3c8pTNQ1R8GdrAQECO9/1s1l4zy3Ca0AEwH0xGgIntsn+2mtBjh4fDQGdG5HDOe0hSZYlXIVMFlgu9tyg6eIHShXsoRSL9vNWlhRawW8wzLT2eQxbFfyuHtkdgwQnHVzfp+a61XfWRhhIotNZpeRZgIRpQ5wAMEYMKmT3fc3slLELtic5jqhM19DWNnNrto6BQKi1Dm4el++OZAPklSfLZNzJVMgElWQUlaw8jyZgoQsvRRC0LleXzjHCa3totKO2zgLEkUVYIO04Zb1VN5zkrx2ZWFh0SRi79vgvvDLylX3miDMg2SaHiPNXmfLE3oKHCCcGSgBAkBmhZ0OCGnDHbl0yzV/PLh8MGpfjk7eV0/eVz+57/AHv+U01ws4ELWN9M4fD4IygPZRYk5jrudy7NhgzXQvSQQDuS1fObdn+WDUtOoECqjCClmH9x0z9J4TnGuk3GpW8Pw8pa4RLbsgU0ezj8mzxYdmJtdMzjs6PnBeMXGIAzKcVYkhYDCzKr33xPy8Us1amlaiUftULF0QKeU5//Gow5eeFRAFKPmD/eOsEn3KO2cAqkv6gsP2VqTCNC3xQud0hl0X+dA83o+lZZ5numxHgCqCEP0ltCsRZLy0qsVOBSmGStmn4V25V+P/QC3HgzyhZzVaBXYwwOyQ7bJqR+dMrd6WZ8afyvEPRUqklcp000DHZTvtAtlu7h8KdepZcKbfTyaoC3/4m2bbV5j0hgVQ4mfrcsczBhFPp0yQ2re5G06Gc5zQDpliJe2NW9tex8x+DEO6ef2oFWsI2tpboIAorCiTfPFn1Q1jYRBMqwmFElzXyHbdEViZarD2sFfDTFm/I2pX8skL/iukqhy48l+fNhRw4FQ4+xAKIiJCZORrd4z+8085iCOVaTsQXSPbdUEHf0XHlrun2UykQFoTaAOUQnMwQRgzAxbEu59Kz4btaO3Dp+INBxRFxDABnDm+Y2ny2KbGF25v/vutMaJehk6304aCsxhTF8h2XaJy6O+CzQEhSR3T2GkHmVeuwN5FfaZav/lh+cFvAhcUA2N217kxBmnVnnJA7SOn9lsRQwyFUxjG331vy1fvpC11VOu9XIyJ4HQ3YvhetptjhN7zsh0RklT3KY18/mw+bVVhfCXff3z6nYfqF1+z5anRAROG0+9qYwDbpGV9lc+9qdewcSpEZAUB8xX3jX3sR6zhEAWISiKqrlWOQ9Opj+wq2W6OHwrbsh23T4R7bNNVoXmFrVddVDxtVZ8Vsk6dEyuSCr9+Ze/Vbyv15EdkNwikIGI3ctkbzYr+0IowkSgFzA9vbfzFt1Pk+4OcI1arWWPG3aj2bS9CW7bzhJ71LvQkHu8BQgdMUk/ed0KwZmGUWArYBIaM4YA5ZJM6rFlc/IvjY9eQMJhWnyZjOK00P3SSPf2lPc5RwEbAUGpYd+FV256rFAJjxPGEBrk7oU9q6xtetpv1sL8D2Y6A1KHUVz370KIqB2YqYQ1D1J17eNgTjTTKqRAM72rymmFKq43TVo585FWDTgQGmZfELH/3w60/e7gvKOTci2i12FWyXfcEVrCnLDSRkmKoIEt6sklq260pgaD7DYTXvyN4yxHb+rExrTSsJUNkSKdU9AWAtVjUW/vsOX0hc+akiEjAuOr+0U/81ETFnLg9sRDdAS/b7b4NYLZlt9fiekilHUWSs2GYAUFf8ZK+V7wEj2ytfv2O6pX3NB7cFIFjynFAKpL9qkIDSqufeWu830AudWoMiSJgXb+1/L6r6jCL2r3o6MWsQPfIdj7bbjcsMxECoqRSP2lV+fI/np/jeEdEG2cNiUJUVwzlP3Lq0C/enf/qHyen7r/NJNW0ap1oSGyMSer1D55cP/ul+dSlxmQ1VVoT/fMrq8/UF5hQLfZAt1Qv280xQu8B2c6QOqGksflPX55+8rULchwolFrpcS3SZQ+NKggqqlmptihEXH8UvOWw3rcc5m55Iv367eVv348NY3nY4FWry5ecOuQEzAZQEQSMv/3ByI8f74lLJnXCpJMmULywLcpn280NdMh2L6r4ig3SRKNg5ONn68XHLFYVp9YQq2aZ93CqChIg4syrFkMEkBNVIjYkqs6BKDh+eXD88vhvT04vv7f2wwfrl71pXo6MgxKRE4SMK9eVP31zPiwUrBMCv/jdZaps54tkZ70LPVW2091hgxrDScXtM7Tt8+fEp+074ATMbKAiWQ2UE7WGw+xPCNxXf1X9yl3pWYcGb1wdLyzlAIiqKtgwadaEgPfqz73/xNz7T5RMeyAiUYSMx7c03v/NpoZDoqLKe+qp7h7Zbo4TerJst9tFskQwRMlY5YT9qv/5R737DeRtmpjQENgJGdZE5C+v33rbb/mVq3K9RbOtnPzit/rLx0M1hR//tnnpjypnHVp/65r4iEV5EANwqkwAsShUNRvLTYSsD3vq5E+uKT9VHQgKKrLHjjc+287Ldi31TZSSauUdx5b/1xnzSqFJRcKAFZqKhGyeLdsLrhz54foS8vlf35TAGqhBFAVFAEpUfKpR+NRP3H/c1jhp5ebzjoz/YEWhGBFgnFOQElHmeysggpDxoe9vu3F9Meg14rCH2y142a7LZTvDlKaIdOSfz8R7jp8PYSccMCxYRULGLU9W335F85GtA2HRAIpcSMqAikJdq10TMYJSUHOl6+8Lr7+/eeiSxnlH2HMOze/VmwNExDklAjtBFPK19478y03G9BbEyR6eM+6z7eacyrF7bOYAadUt6S1/7tzg9P0KqYghNgSnIHUB42u3ld/1bR3VgSgP65SIdCL3rf2HlEjhoMQa5WKl+J6NuOe65id+3HjD6tpb10ZHL8sHIICMoQe2Vv/kukRzg9SKaO7htl1etptjhHbTlO0IIEN2JD1qxcj/OTd/wGAhsQjJEKlzMEYT2L/9XuXSHzFFA1GozmJSqHC8dq/Vd0ABOJCDEshEoDh+zsaf/5X74t3Vk5eNve2I8NC9+KHh5iXft5vrA2EEUccaCEFoj7m8XrbrUtmOGKrkquXzj2n+69mD/YGxImHAAlWngeFnq+mFV239wf19QTGvqlZbIY+JQqiWXZ3YFZRakhlBs+Q7w8R5Y7X3xkfdjevTQj6pJQY0EMQqYqFG2+Tb04vgZbu5Rexdy3bMsJZYxv7n6+wHXz4I1UyeE8AJIkO/enrs7ZfLug0Lgp5AXedoe9lJKp9O2ujb1lEVDsoQjglx1JA4jEmgIgDCjunGe/LDe9lu7sh2Qs8v2xHBNnWvwobPvqlw+gEDIlAQkzolAxh2X7u7/O6rZVuzJyiRFc0Cg/QCO6gLQAp2mcUm7Wja/DuhnJft5pZsR88j2zHBWXrJQOW7bx84YEHOWmFDDDjRwECAS74/9tGfhIh6TMFatHp+KgDKQtK0exIbafaexttWg15I9aGX7bxst2P/kYg0TT54sh6wIGqkyBko4ASB4U31+ju+Wbn+nl7TEyvEKQPUYefohfClHf+jCUf5d85mL9t1kWwnCrDbfzCyDkQiCqsaGb7n2crbL2/c9XQx6glTVQURWk3GZ99D3TWyXZekj47LdjsIHTIBLvjRw7XAcBw4NhIZXHnf8Cv/Pblr82DUGyVQJZBmarObfWweJ7SX7eaCuvF8sp2IUj74159ifu/Wcw/uSVP7xVtrH7uZJRwIc7COiLXduohm8yJA4GW7OUTsju91igEjQo0H33dd/X/caJ2zw82Q455I1TpCK1oyPiF7VtIh8/tF1U/Bmt3okO10V3ZaiVkon9/cBAhhLCoqSiCZA/OUFbAEEIyfgjUHFA6lKUoC7fgHhaAIsjidcHsImnYEOmardSMCMYkiDgLjVY65QOrWPIrn8R9VVVsnJ5Wp7J/FezUpjMI6DJaEAFHM4enIXaJyYPpugxJ0zg0PViK4ZMWQa7V+hCf07Ca062g0o89L6LngOE/+RI4AYw9fGnZsOOIJPTvVDZ1sqXen3dwcWQQlcSjk06OXRsALnxnuCT2ziD3NZo3j0Yc5MxmbidDUtXvZlfOMTjjQ5Ak9+zBZtqM5vNU+z6nA1t90cMgMq51PuCf0LFQ4tpPtugtM6iyWLaicc2guy4md20vRPZNk93B/6FljnZmkXr/4+HheLrKSNU4gT+jZrnKgy3jc/vhMaR2H71v7s6NK4kBMc36n8rLd3D0IE0SoZIY//4Z8MSDH4tNH54S68YJlu9l9X5UBqVY/fWZ41N5xKmqIWJnm+sfvqmw73e1yqdl6EISCbW3kY6fL29cOJFbDgAgEn5w029GqO2p5GtwNmp1hpClxUv746+gvXzGYWhjTqucdb/vrCT1bIWgnzU1Y5Tmb4s4MKKU1WVAa+9Q5+MND49Q6NmTaGny7SJ08oWczpp1t9/s6q028h/GE++lf3M6XUiIiIqewTQdXO+vQ9H++prD/YGRFTEAMUlBG4m4IC3dPkeyLnhUEECkTZw9JJ7+042909IlRtCoRJz1bk3vR7OikuuuL7WgRKaCUCiFVpGkUN1+9ovknJ8R/8NIeQugEAXMXnYK7jNCdjWZ2+xYzIRvqqqmDde2GdQzVVv0WAeSggDIEACEYzwgBlNFZK95pa8dt8PQvgkDZsACF2sE8Vi6Tl++rZx8Urd27FzAqEILhSfzvmqSdbimSfYGDN5kAJtsEmmlcSFctbh60GPsPBfsNuJ44AGXTrFQIziEVWKg4VaVU4QQqmjo4sLNZXzACqNN5GHcqpn8RAKlEoesp0dIeWjUvWtKPGBHAqiqq3NpEpiyDt9Bzjti7JdsRlA3SVFCrrFpi33Jo8OoDw4MW9uT4xa+Y7ohq07+4/cupFTCBicwOfqy7QqRettvhuQ2O2VUqBy2qv+ek8M0H9/WFIaACZ8Vqq6soAMNojStunTdpmk/Xi7k4xa0HEQXcfg/dGODvJkK/ANmOGTYlo2PvP6X5oVf09+VCCFKrzGAiw4Dy+PDDVnutth4m06IzTXjXE2fI6V7cobWntk8l3eMsd6/LsTuynWFKE7u0NPqFN8avfel8AFbUEIVZzJhM50ZPbTkM26kcO/NsaPL7oLZZ3/7ilIdvF+IxtX+IujMDqytVjml5A2worcvKodGr3h4fMr+UWBcEHPAEZVuTNnf+ilMotWs3gp7vYpd6wS/6jncDoeV5s+0MwzblpUNbvnth8ZD5pYaV0EysjkLbc2PHR2/TNM99nb6OTu8idueieL53D6GnKdsZg7SJlX1brruwuGIoZx3iYKeWkTobmu6Qy/r7/owe3eRDT/Jpacd+c11XDm3+zgWllUMF5zRgUnDnz+7YHu/cP3hed2LXF1/wb3nMcQs9WbbbwTnNMKWJrOzfeN0FPSvnFVJRYxQkNHeKvj2h5xDaOpqb6IVE0nEKRJro/qXR6y7sXTUv33AScKJwbWVZPD+8yzETvY0dNsE1TGnilvVtufZtvasW5BOR2BAQdXMNoif0LIDS5E51ygDYaNrQpT1j153fc9CivHUSGS/jepdjxiMGDDsyUJroDG2YbEJ7lzZ8+wI+bHGUWAla3Sqk3ZLGwxN65nka4hAZPnRhqg3hwBApSE1AaVOW5kevvqhvzeJS0zkORNl1iCEentAzldQK+sAppYV9I81ROMuinFbt8sLWb789PmpRnIrGJgzAhKAdhPGcnuX3fG6P3XAKQ7hnU/2jP2ze+TQgdPTyxiWnlVbNz1txAXM21NVT2BN61kAEzAok25qiagZzBmARYXA2ElbB2vVJap7Qs8tOC2VdZaGiQNYTC1CfP+wJPRvRruIXEMjbYk/o2U7ldszPU3nuo3uSkzw8oecOkT2huwV+F/bwhPbw8C6Hx+8Z0lHQMFFLporJbWs8oX+nUCeqYLTTPsd94PFq6lYfjPYdCebEHiMKVQGIiLJuG1n7W9F2dxyaFM90rVTtnStUStKuKe/8xYzKqqo6JalWiYif77iRNWdCexJ69uIz6umYWbKdwtGkbvvT+R2dfouXmUllKJgnL0PH8zv+0fSFxoEyCnbSWkSYd2AJVByx2eWLOWx3g8bLh72Fnopyol/69eaqjQKCzUxA20SxAoBrV+wxIIJimF6wpq8nCmcjnxUQUcMEwhPbqj9/wt7+jH1sxIxVkTglDXMh+nuSlUN85OJozRJaNhimIoajxLkv/2pkuAEy7CZzv2VpVQ00Nm5pT/7gRXzAghxALuuqq6oKkD68pf7NeyscGgcQOEnlxP2ik5cVdvbYiIIID29pXHV/JTIRiRKhmsrLV0Yn7l1SnSlezEwhdLaOY4l+4Hua1nJgAjMIUEE2iUwFAFrdbAUEuKC3d9u5R7geinS2RbEVEFXD+PUz5U/f3PzeI+FwNYIWQNxuX6NQQGIoQDoY1t5yVPmTpw+w2oZ1f/MDHh4rIORW/ra2n/IJE69Z4mApqB63T/3Dp8Qn7FdK1RlibSVs4cPXxCjELfPa1ANfUrn93bkc80768SgBl/ywfOXPe5EPIQIiVJO/P8e9fG/OksA8obdzgIgGCrmtJmIiJyR1AY2Xq1KH75z9lwPi2RjKFkBVmXDpzVv+8QeoNgcpZ8IYTKrZYW7CiQqyZRmuRrc9NcYUQoUh8/LhqAuCkMa78nO7abSqEggCAStQRXTDo+7mR8c+c27losMLVlruQS4wpjeIciZrD8y9Zt1zybX3VP7oiH4nYiY7JKJgwq+eqVz/IAXz8jCkgCFIgGKc+EPhLn00YafkBEP52puOrBGMTjVtrbONFSyIbJ55NiUZZdZPxLD70Pcrl95Q4GIh6BMRa1uNqNkJabt5DDEYMCQmkGIkWT6VglJh5wyT2ux5l7Y31l4swwgIDqqEsECJG7j4ytHVC6vHLC4lAgMihVMSIVEBEakjzn3y59vOOiSNONzRjkeX3ZLU03lBDtYpATBwIoG6GTXlI5hRN5oUBAYRBEt60s+d0QeEHdXXOzLGItJqX0fjm622W+XT+F1WaHaQp125PZL9InV0K29fGf9FUYhm2U7K4y9I48Z3UomAk4lG59kkKlEw85fuGLv0hijsK4qIdUQgJnZ1hUsQJTlWImMFaRNOyCGEGMskIFZRaFZ9Q+3RKZFpzi+kxrWyu1VpuOqqzTzlIxYVRzFrwxY//qORq8/rmeiXKtDsZRQOFEbh7Y8Xr32wdu7BfakgaC+CqDLRXRtr195tKOZWum1LeGIh4y30rt2OifN0I9XQqGrW/54IOskUKEAwRGg3LBxXuCb/UNaQrt2fc7sj/zjzDHc6gq2GS9tbKp4gN008ixPvvvMl1PCk5jAiIMaGcnLJDSlKvSqqSoZUlV2zfszy2tmr48OXmgUlYwJqNGVbufnAVtz5VHLjeiSNlNpdSLX9l5kgCVYvrvzgbT1GyZKCoMKbysknbyr/5909YRSqkihMwdz4WPTISLKiP+x4BRJw28dRmOKnb9p65oFpyGHHRxJAP/fTajXpMTmn1uzobnlCP6+bSWADw6Qw1LZ8HbxtXZpst6Vu3X2bkrufTh7eRE+UTbnuSJXBC3t49YL0uJXx0UvyAE3ZUlXVMDbUkhseavz6abtxq5YTCKNozIIefemC8Ji9+chlcUiGiG5ev+3ujQaxcc3GSfvmDtur6BRM27dMAoAr7hnbPMYmgGr1zat7B0t5hn7519VntpTCXnZWQQ7EbIf/5bVy8QkD4VSDlzsZAOzGmnt8M0TqhmKAHBGYHLfU4JwG8/MMTLBwYSH84jnx+uGxW58ciCKIggyN1aK7n22s6A8Bde2n1hFAYIUqwjx++WT4vQfrZ602TsgwiYKJ121pXHF/wIUcnJCSsEA1O72wJ/TzOh+k49NFaDvnWSf7CK0mXRlBFXrRNytX3pt3nIONodzSTBlQQZpykJx5wKZPvWFgaX88zmlVIcJX76v+7XdrTw3noD3gIOskDgAuhSaFqHzH+7BqXhHAM3X33m+myPWjbl91xJbvX1joaGk7SeT69bNj537dQUpIad8lo2850hjWRNzV64TCSFVBGpBJas0PnCJ/ceKQc5RCibIR8+1PCEBpYSFauDwUSSe2jragmX3jNDsPkgEUSAQ5E7x+VfiLRx3HQeYjkaPhEdmFWSUoTM8nfrb5dQcWDAXZow6if/tZvVzrCQsQmXoTZlry8Ux5wKitDGUhLAAqah2cwIk6gVVYVRGxAiewolDhiX5Irf//ZpNx9RwkB7IwTaAJqsM2YIlyMUf5a+7qOf1Lw1vqSUYXJ0pEN6wfPf8r8tTYUFgoIhdCFalFM4FNwYqwkFKPKgFwKmce2r92VRwEUX5B6eePlX79VMMQpoanFAT90i9ToKfYH1Go7zmxty+OADw5nKzfzBwaVWWm1NLyvvpfndgjQkpqDAJmJsq+DJNhMsaokAgrxyAmmmyHFK2zwfgphGAIougpmlaNTqboq2lYarWB19btNzrRIk0FUYRbHytct75mCNaBidZta1xxF3PeOM1aYmvbe89+Q72Ffj4bTQIiw1IIzXaOqel4BFQh1GpmnjmBtChfOXp/d/TycN8hN9hjiizOYKRKv3nGff0u3djI5QYKdz4j/3zL8D+/aoEVZTIKe9nNqfJgFFGSpvv0bT15TbxfH8LAOJVNo/au58JHnh5TGQTgRPOG/nQtX/h4EuTDejLwn7dvO2bveLytf/acMMtvR5tX3xtzLqw13aLB6hsPyYlapmD91rTcDOIIFmCQTXXNap6fD50VY2hnggHxpM58Mrk4XQCrIIFSq7uuiIaBPjOcQKOJ0AtLlA8mbHx2Mmwfap2KMgxBqfhvNw+fscoREZF+4dbq1mpfPo+UnBXDTEoTr0AzzETPSB+aBAFvqeU+/JMaKyjL7RjvywwwoW71sCXuzQf3Zg5DK6qo+Py5g4t7wwBmamPlI3HOmvprvzA27AY4X/zhuuY/ntQMOWTCcNM9sCUgE7gUA2HlWxf0HD4vN3nvSp/aZvryMaAhGwXeeEjun24afaQ8L8jRNevCvzm5sby3IO3ycVEY4q/fXt861pPrQ6NSO/c4u6SYb6RpLtQnxgxsQFE7lcIlqxYhGwu3s6D/pDyWVgXO5B9kCWnSkdYE9NhY7fK7LecCESUiqwgjWb04AAzgJhTx9q8s7atvKAcphSavtzya/87D9bP2Lz02XL3idkP5wLJq4pb1V55rFFIJZ+ypcObJdkwQYwyeaeY+9gOBEEjB2uq3yFkOmUHdnXHs6JsPZp2IuipY9+6NnEOSlcJm4YmsnFDpqCXFl+1Tv+43TeRyT4/Em8q6d38AICG2JlFVYTKQeYEBINY6CRRKhIDCvQfCtgAOJ+jNB29ZG/z9d5OgP9q6Dd+4s/7Xryhk7mamPIwmyVduV4pCa9Eb0vlregFk89bGGoAEnc7WkiJlyvrOwsc0RV1UsMqEl8MoN/mmJxtQk/1wIvrgc+nnbpXfjvQHkVhoaEgatHaJXbskn4oLeSILTxVgkob949X2B+vcfVsijiXl6N9+vO2slaXP3lrbNFqIepCktKBg33ZM+j9+5BjhpL3CE/p5fQ5SzdxBgEHSGu+rBGpHwsE8tbe4kpJTGMPGTGh24zcO0KE+IDWUR1PQtK3T5FCEvYry9DCiWLYkPWd8dfhPj8udvn+0sDfIuOREVWh8lCUTFDh/TfSZWxrDaURx6ct3jr7r2LQnDhUQgWFc+0DzoQ2FuBfNqp56cHrw/Jw4beX9iE4eAcTMu59dpeMqPDjQdZvjV342nZAtlSAGUcHELKqGYIXZDl/yqiBm07RuytGJCZLK8qHogmOS916dShwHkd70ZOFTdw5/535GXFAI6u7Mo5KjlxVtA1GenM7QdsMzktDGOWBpkJx/nGU2pEotGrSGqClRkurRS+OsFWNm31VBIMPy82fGfvKQfWRTXG00hFtBNxYYxm0bcpQzKlDi7K5a0dCE7zy2dOtjw0ncF+SCO5+d984rqx8tNY9fWX/9AeHLVwSLiwEQWEUWZyeCE92nNzrriOYXb7JRX7D+udx3H6z94WF9WYJDAve/f+nARYGyKV/0sojAaTtO0RMQxiN8AFTHmnZ3HVHXEmHGxaCIohzaewgpmCFwokqEtMmwYx9/g75mVdGJGmKgtSyZD53ZjVqSvvOo0qX/Vd3QiDkUQvjhbyUN7WNDTjSMR//q+OLDw4TJcz3Z+9DT8KFJEyztlY+dVtyR5eo4N7U2+ZZs90w1fe+1o9c8CLUFuBykMH58bA3xi10YagqM+6uG4RTnHdmzpTzy0RvGRhslhFFcKD6Z6jfukm/c2dynv/q6g937Xt67b2/OtZumZ9OJ/3xNfMUvajXXCxP/x53lPzzMAgETbnqscttjNixwWreHL6+dtO88ETasWXrVUL8ibBBCbWcU/WZDduwVTDt1dlKyOLTdnEGyWXBCDo6VQQR1OGxx9ZJTcOZBRXEJc97pjqdmJKn2hsGFa91Hb7QUE4Sq3A9QQEhr7vTDsWIovOe5Bija0VbhZbudyXaicAzlutGqhROyQk5ghayQFVih7KK0Bk1ydmisWDnva5uuvr0nCufD5IuF8n4LxlYsHluxeHS/JWP7LS3vv3S0P98UmTIihQzBKP3VK/p+/u7cxceV9+rd0hyrokmIwlyx9GR56DM39Z1w2diNj1UMqYgDgZmg5tBF+VMPdLauQYFvfjT8xRNNZgD6lVudk142CilfuDYXcuAUpm3ZDpgfxJETB84UtTC6+VEdSVMiFt3FuNhJyqCZREqCpLZZs0nNJlVbr8O29i0iSOJOOtCeeVBvagPiiMaPFu1lN+08fyZS4J3HFBcPliWBMkhBqiIIw8Z7TyioBkoCscTjNQgzbtDBjAx9k4CJoCGr4e2FrKmTRkRgmC6/u/aTB/sLg1GtVjvjgOpHXlVa3m8obIkJ4igX4L99e+TLt0ZBMXuOJ81QEaGDFhU+fUbhknrjFw83r19f+b+PyMatuSAX50vxs5V551+18a53hQsLrVRVURiSPzsuvPaBOlMhSXs+/6vqccuxbmP9u+uES1FisfeQnrM6n+nNmfQGxYqheN+h6m82WGOMAkGIxzbmP/fTsb8+ebApypq5BJOiRwoEBBAc1GQ5tTTugMM1afWi6idOD1gDht6/sfHff9QYbQwwQUQ5Zy77Eb/xgOqxe+WdqKGp50whGACa5a26vQeCC44yH7vBBRGrqDFIK/qaw5IT9uojcoamNrOcabLdzMu9zKQMFtpOs9qZTJRpAz98UCgoNlJe0msvO6d02JJooBD0h9FAGA6E4UAcFIOgp9UlOrsNOjmwR6JwovPyudMP6fv3N8V3vjf3v85u9phy00k+j+e29v74sQaIskCFYTg1J76kcMI+Y0lFTD64/j7Z3Gh88w47Us+FgWrNvWU1zyvE4oTatz1VFA2fcSBraimLbapwMfyHG81nfjEWsA2Zs1yR8S/DCBhNTR/aOGrbpVeCjsonRaloTt23cMp+hZP2K777uL4Pn2JdWlfDCjIGqS184bZmO52ovZ7aSh9QGk9WAkBOcNGx+fkDVSiFRok4COvvPz7PWeBwO6doph0NeebQOOMZEUEMhEVhBalIKpJMfLlENBGXXbQT8pxuLYcakFh9Sb9ZFMeJI1ESVadIRRNnAVQ0BBntmAikUIG0C+MUUOtcYm1ieVFk3nds37tOdLZuQyXS6PHRzqkrKqoB8Z8cU4StGYPRRvHvbqhevt4hLqUp9fSPXnBMLktVpraEbghQXHR0cbCnLLYlmIC0EfVdfG3ulC9UPvfL8m1P1h/ZVn94rLF+OLnjqfqVd1fe//3RIy4rX/StYeZWMj+rdrogzmki4kRTgRN96+F9y4fqzmpmpE0uuP4ePDKcGDaiU28/SWcJGyUW+/SEb1+jdmu9WZdkS/3kA+ov2ydnbTtmnlXttSrfvGw3LW+aIGBDhR1UwHI7XthhuRUgBLEjOATm2dFkLA0Go3jC4yQKma+6d9v37mPKq+uoo1SQAT20pVos8NJChKm5QTrWQNa9FIDJ+Nh+GkImVbzuoPjAvUfXbSjFueiLt5dIKQyR1tyr18iK+TkRNTxh1Zgggn374n98rf63yyumt8QQUTIACvFNvw1vergZhLYQCjNEqJlK04VAATY8Zv/AUFvmmbIoioCJQQyImKEcn3eYfvTGOpUKIhIa3VbJ/5+7Kh89OWrl+3X6d5MddUNQ1YuPK1SbZTVi0/SitXlWtuNzxGlGzziYmSqHQ4RNY+ZD3xsNOZKOUC3ITfyQ48Go+Wcn9pbCAKA1y5P/WhdGpfDx0fxFl49+4OTCvoM5Zqo0k3UbkyvvTL5xV2y5YEKrEo9v1040MPjUzeWr7jfH7hcdON8s6+NcjlW10bB3/NZ+fV3ERU5ASsmaBREmykmyZFSUgujCNeYvr6m7fD6UQAlKGlD9nWtiTCRmd8rOcKJ/vnbwsc1jn7hxjEtFE4iIVeUgYoryVjEmgAMROEAQ24CQNoTJthO7p8p23EGxTMM//6jCZb9ojlllVqdKcf7rd4y+9/jmvDiykvksmk0Ek0mznomhCiztiT9zem6SG8jcClOpl+12wwEiYzggJqOb0vjSm4JW8sZEqp1tLz7Dmnm9ydtOsCUKVPGutT3fuG3bk+WhfD66dl3vd9fbRaUGAlTSZLiqSHsRup5czbqiYxieNCKekd882nv9g3L9vQ5wINf2MgumGLOiOVp/zcGVE/eZ75Q6z2zMUOgfHVa69Gcjm2pxzEJEzSZetl/zFfv2acs8b/85yar5+Gv6++Phf7oxqdX7kDehaeXHGih1BoYIAnbKdcvjnDXMhkGGGCCDYCIdH0xIRFcMBGccWP/KnTYqBanjMIcnt/Re90B64RE5Eck84cAQBzCg7KVa3GQQkQLOtYq1qHNgOlHAgTHQLExkZkop4QyV7QRuuD5qy0k6mrhaExAgARJQAkqAtDO2AKSirS1YFUv7osvPKx48OFofS4Aw0dKTY8UntxSHR3qQ5kpx88OvrP/1yaiP1JJ6Olqtqh13iCnHKdwY1IEDBHkERQQFBCUgdOUxVxt942G1L72pPzRERDw5n19EF5X4HWtzaDoQMxi28rY1UcBBlmwp283rNoAhcsIfPnnoxxfn//CQ8iDK6VgjrdVtDbZBaaJpImmT0jqno5qMpiSVffubUAIzwLVKw1WatlpPKoktp+VqYzzolD0SQPiOY3Nq6/Wys9U0qSSShp/+caOe2qzmoGmdrZSTsbobbSSjiR1t1JN0/IzNQMBkGGxaBYvZZ7aptWNj9Wozrdablaat1ketzKiT4cyy0MWIPvYqVNMkmNJmZkdCvlMaCiTPqlBmEnXHLYt+/p74m3fWbnii/tQ2J1aCiBf30trFePUBpUMWlh4dTt3rqhwFodKCIiuyKcjuA6f2vGz/2u3PNh8brm2tpOWGQpUCnl+MDpyfvvqg3InLerJTIG+XbqFQwKxeGABgmCTR/efXz1w9MKHW7WiScba7O4ejlxYvf2vuoRF766PNO551T21NttSQWghp3qS9xWifPj1wER+8LDh44QA0FTI5g4+cTFsSa4yyamJp6WCYuQPUjhYpdO3e+X87K91UTcOAoOpIQ3HVejPfmwewej7/w+spNKIghjZSOm1FQeF4fAOiSTYv+9yHLgj+4Q1NiqyqMkmS6qkvCbJtYaZYxhnTaEZfoAqkqSLI0nra+W4CsMAJhAFu13E4p2bSBtk6qE+eR6Ft5TeTJsx44RZ1pA6pQlRBKqoMk6g78bNbbn92QSFPtUp66etrHzix11mloG3OO7X0dtWNthVDBcKOKkSFZMV+Qas2YfzdibTKdAzveiEpKxeEmWoLtNUMTLGjhjKiKtT2MCZKz3VHtWY7Cd16Cz01mmtFtd19Y5cWOltuNWw63UdViLIChkzQnkGREd0YUoVTBSjLdiAab+4P0Ra/DVFWg6hQ0SyorpNcbigRZSEGQwDko98du/2pvqgX9QZWzi9feHTJadaaaEftfCeXapl2xqmoAjDKxJS1CWh3AxMABGbm8ZOglalrN8Hx1usTtRZz8nIRt+t01GUvTC3dhjnLByRMaUXV8SGcIkvzb1/pKBP2hN4hqYOJTZ127mzvRHcCiMaPKa0eeR01rSDSgHYUF2gX27YfGcqyIsx2Nzd7Nv7roZF7NriXLIwaDdzwQP3L9xSCfI4ctFn7h9dGQ3FkRZ/3PtPkt81t1ULbJplab6zz6ab2Kk3rTBIwddhPmiiPIBAQmN0+UJnOhZqJcZWZJ9vtiRXSDq9vyr64i5vRTsmmbKffsQukAhi69Rm95OoQfQRh0GBQCERgy5UPndQ456BBJxrsttXS7UyjTgnO7/7i6C7HLuqU3nm/e++wa3Xo36GbTtP51106jQpQyALEQAEGULX1xHD9g6elHzt1YCdtEF/Ae5v0fqa4s7+XBdkVl3WmErorpmDtSQqoKuGBzbVv3F59aGvYSA2TrJjnzjwkOnFZAWIUUxKGPTyhZzbchCvaWREDJ9LW6fxIF0/oWWanW503JvQ/yjKNNGuW7DntCT03nHR9IYc3D38onKHmwVP5/zf8+cXDE9rDwxPaw8MT2sPDE9rDE9rDwxPaw8MT2sPDE9rDwxPawxPaw8MT2sPDE9rDwxPaw8MT2sMT2sPDE9rDwxPaw8MT2sPDE9rDE9rDwxPaw8MT2sPDE9rDwxPawxPaw8MT2sPDE9rDwxPaw8MT2sMT2sPDE9rDwxPaw8MT2sPDE9rDE9rDwxPaw8MT2sPDE9rDE9rDwxPaw8MT2sPDE9rDwxPawxPaw8MT2sPDE9rDwxPaw8MT2sMT2sPDE9rDwxPaw2PP4/8BebiSmjdXv00AAAAASUVORK5CYII=";
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.innerText = s;
+  return d.innerHTML;
+}
+
+function buildEmailHTML(name, subdomain, username, password) {
+  const custName = name || '[ชื่อลูกค้า/ชื่อร้าน]';
+  const sub = subdomain || '[SUBDOMAIN]';
+  const user = username || 'admin';
+  const pass = password || '[PASSWORD]';
+  const portalUrl = 'https://' + sub + '.easy-crm.co/portal/';
+  const adminUrl = 'https://' + sub + '.easy-crm.co/admin/';
+
+  return `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F2F4F7; padding:32px 0; font-family:'Sarabun','Segoe UI',Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF; border-radius:8px; overflow:hidden; max-width:600px; width:100%;">
+
+        <tr>
+          <td style="background-color:#FFFFFF; padding:24px 32px; border-bottom:3px solid #2B7CF6;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td><img src="${LOGO}" width="44" height="44" alt="Easy CRM" style="display:block; border:0; width:44px; height:44px;"></td>
+                <td style="padding-left:12px; color:#2B7CF6; font-size:19px; font-weight:700; font-family:'Sarabun','Segoe UI',Arial,sans-serif;">Easy CRM</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:32px;">
+            <p style="margin:0 0 20px 0; font-size:16px; font-weight:700; color:#1A1A1A;">ยินดีต้อนรับสู่ระบบ Easy CRM</p>
+
+            <p style="margin:0 0 16px 0; font-size:14px; line-height:1.6; color:#333333;">เรียน คุณ ${esc(custName)}</p>
+
+            <p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#333333;">
+              ขอบคุณที่คุณลูกค้าไว้วางใจเลือกใช้บริการ Easy CRM เรายินดีเป็นอย่างยิ่งที่ได้ดูแลและสนับสนุนธุรกิจของคุณลูกค้า ขณะนี้ระบบติดตั้งและตั้งค่าเสร็จเรียบร้อยแล้ว พร้อมใช้งานได้ทันที รายละเอียดมีดังนี้
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F9FC; border-radius:6px; margin-bottom:16px;">
+              <tr>
+                <td style="padding:18px 20px;">
+                  <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#2B7CF6; text-transform:uppercase; letter-spacing:0.3px;">ลิงก์สำหรับหน้าบ้าน</p>
+                  <p style="margin:0 0 10px 0; font-size:12px; color:#666666;">สำหรับลูกค้าใช้สมัครสมาชิกและตรวจสอบคะแนนสะสม</p>
+                  <a href="${portalUrl}" style="font-size:13px; color:#2B7CF6; word-break:break-all;">${portalUrl}</a>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F9FC; border-radius:6px; margin-bottom:24px;">
+              <tr>
+                <td style="padding:18px 20px;">
+                  <p style="margin:0 0 6px 0; font-size:12px; font-weight:700; color:#2B7CF6; text-transform:uppercase; letter-spacing:0.3px;">ลิงก์สำหรับหน้าผู้ดูแลระบบ</p>
+                  <p style="margin:0 0 10px 0; font-size:12px; color:#666666;">สำหรับผู้ดูแลใช้บริหารจัดการร้านค้า</p>
+                  <a href="${adminUrl}" style="font-size:13px; color:#2B7CF6; word-break:break-all;">${adminUrl}</a>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1A1A1A; border-radius:6px; margin-bottom:28px;">
+              <tr>
+                <td style="padding:18px 20px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="font-size:13px; color:#AAAAAA; padding-bottom:8px;">ชื่อผู้ใช้งาน (Username)</td>
+                      <td style="font-size:13px; color:#FFFFFF; font-weight:700; text-align:right; padding-bottom:8px;">${esc(user)}</td>
+                    </tr>
+                    <tr>
+                      <td style="font-size:13px; color:#AAAAAA;">รหัสผ่าน (Password)</td>
+                      <td style="font-size:13px; color:#FFFFFF; font-weight:700; text-align:right;">${esc(pass)}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+              <tr>
+                <td style="border-radius:6px; background-color:#2B7CF6;">
+                  <a href="${adminUrl}" style="display:inline-block; padding:11px 24px; font-size:13px; font-weight:700; color:#FFFFFF; text-decoration:none;">เข้าสู่ระบบผู้ดูแล</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 8px 0; font-size:13px; line-height:1.6; color:#333333;">
+              หากคุณลูกค้ามีข้อสงสัยหรือต้องการความช่วยเหลือเพิ่มเติม สามารถติดต่อทีมงานได้ผ่านช่องทาง LINE Official Account:
+              <a href="https://lin.ee/qGAkUeJ" style="color:#2B7CF6;">@easycrmofficial</a>
+              ทีมงานยินดีให้บริการและดูแลคุณลูกค้าอย่างเต็มที่
+            </p>
+
+            <p style="margin:24px 0 0 0; font-size:14px; line-height:1.6; color:#333333;">ขอบพระคุณที่เลือกใช้บริการ Easy CRM นะคะ</p>
+
+            <p style="margin:16px 0 0 0; font-size:14px; color:#333333;">ด้วยความเคารพ<br>ทีมงาน Easy CRM</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#F7F9FC; padding:20px 32px; text-align:center;">
+            <p style="margin:0 0 6px 0; font-size:12px; color:#999999;">© 2026 Easy CRM. All Rights Reserved.</p>
+            <p style="margin:0; font-size:12px; color:#999999;">Facebook · Instagram · TikTok: @easycrmofficial &nbsp;|&nbsp; easy-crm.co</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>`;
+}
+
+function currentValues() {
+  return {
+    name: document.getElementById('custName').value.trim(),
+    subdomain: document.getElementById('subdomain').value.trim(),
+    username: document.getElementById('username').value.trim(),
+    password: document.getElementById('password').value.trim(),
+  };
+}
+
+function render() {
+  const v = currentValues();
+  document.getElementById('emailContent').innerHTML = buildEmailHTML(v.name, v.subdomain, v.username, v.password);
+  document.getElementById('status').textContent = '';
+}
+
+async function copyEmail() {
+  const el = document.getElementById('emailContent');
+  const htmlStr = el.innerHTML;
+  const textStr = el.innerText;
+  const statusEl = document.getElementById('status');
+
+  try {
+    const item = new ClipboardItem({
+      'text/html': new Blob([htmlStr], {type: 'text/html'}),
+      'text/plain': new Blob([textStr], {type: 'text/plain'})
+    });
+    await navigator.clipboard.write([item]);
+    statusEl.style.color = '#1a8a4a';
+    statusEl.textContent = '✓ คัดลอกแล้ว ไปวางในอีเมล (Cmd+V / Ctrl+V) ได้เลย';
+    return;
+  } catch (err) {
+    // fallback: select the node and use execCommand
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const ok = document.execCommand('copy');
+      sel.removeAllRanges();
+      if (ok) {
+        statusEl.style.color = '#1a8a4a';
+        statusEl.textContent = '✓ คัดลอกแล้ว ไปวางในอีเมลได้เลย';
+        return;
+      }
+      throw new Error('execCommand failed');
+    } catch (err2) {
+      statusEl.style.color = '#c0392b';
+      statusEl.textContent = 'คัดลอกอัตโนมัติไม่สำเร็จ — ลองคลิกในกรอบตัวอย่างด้านขวา กด Cmd/Ctrl+A แล้ว Cmd/Ctrl+C แทน';
+    }
+  }
+}
+
+function downloadEmail() {
+  const v = currentValues();
+  const fullHtml = '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Welcome Email</title></head><body style="margin:0;padding:0;">' + buildEmailHTML(v.name, v.subdomain, v.username, v.password) + '</body></html>';
+  const blob = new Blob([fullHtml], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safeName = (v.subdomain || 'welcome_email').replace(/[^a-zA-Z0-9_-]/g, '');
+  a.href = url;
+  a.download = 'welcome_' + (safeName || 'email') + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>
