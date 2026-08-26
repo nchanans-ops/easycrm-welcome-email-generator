@@ -418,6 +418,29 @@
   }
   .manual-library-delete:hover { background:#FBE9E9; color:#D64545; }
 
+  /* Cover-style picker modal */
+  .style-section { margin-bottom:20px; }
+  .style-section:last-child { margin-bottom:0; }
+  .style-section-title { font-size:12px; font-weight:800; color:#5B6B8E; margin:0 0 10px 0; letter-spacing:.02em; }
+  .theme-swatch-row { display:flex; gap:12px; flex-wrap:wrap; }
+  .theme-swatch-item { display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .theme-swatch {
+    width:42px; height:42px; border-radius:12px; border:2px solid transparent; cursor:pointer; padding:0;
+    box-shadow:0 1px 3px rgba(16,24,40,0.14) inset, 0 1px 2px rgba(16,24,40,0.08);
+  }
+  .theme-swatch.active { border-color:#2B7CF6; box-shadow:0 0 0 3px rgba(43,124,246,.18); }
+  .theme-swatch-label { font-size:10.5px; color:#5B6B8E; font-weight:600; }
+  .layout-option-row { display:flex; gap:10px; }
+  .layout-option {
+    flex:1; border:1.5px solid #E7EAF0; border-radius:12px; padding:10px; cursor:pointer;
+    text-align:center; background:#fff; font-family:inherit;
+  }
+  .layout-option.active { border-color:#2B7CF6; background:#F5F9FF; box-shadow:0 0 0 3px rgba(43,124,246,.14); }
+  .layout-option-icon { width:100%; height:42px; border-radius:8px; background:#F3F5F8; margin-bottom:7px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .layout-option-name { font-size:11px; font-weight:700; color:#3A4150; }
+  .bg-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .bg-upload-preview { width:64px; height:42px; border-radius:8px; background:#F3F5F8; background-size:cover; background-position:center; border:1px solid #E7EAF0; flex:none; }
+
   .status {
     font-size:12.5px;
     margin-top:12px;
@@ -634,28 +657,72 @@
   .page-card.is-cover .page-card-topline { display:none; }
   .page-card.is-cover input.page-title-input { display:none; }
   .page-card.is-cover .page-card-body { background:transparent; border:none; box-shadow:none; border-radius:14px; padding:0; position:relative; }
-  .page-card.is-cover { padding:0; }
+  .page-card.is-cover {
+    padding:0;
+    background: var(--cover-bg, linear-gradient(160deg,#EAF3FF 0%, #EFF5FF 55%, #FFFFFF 100%));
+  }
   .page-card.is-cover .page-card-footer { display:none; }
 
-  /* Cover page placeholder: mirrors the "cover-fallback" look used in the exported/preview
-     slide deck (logo + welcome heading + tagline), so the editor matches what gets exported
-     as long as the cover stays empty. Disappears the moment the user adds their own content. */
-  .cover-placeholder {
+  /* Floating control to open the cover-style picker — only shown while viewing the cover page */
+  .cover-style-btn {
     display:none;
+    position:absolute; top:14px; right:14px; z-index:5;
+    align-items:center; gap:6px;
+    background:rgba(255,255,255,0.92);
+    border:1px solid rgba(255,255,255,0.7);
+    color:#1F63C4; font-size:11.5px; font-weight:700;
+    padding:7px 12px; border-radius:999px; cursor:pointer;
+    box-shadow:0 4px 12px rgba(16,24,40,0.12);
+    font-family:inherit;
+    transition:background .12s ease, transform .1s ease;
+  }
+  .cover-style-btn:hover { background:#fff; }
+  .cover-style-btn:active { transform:translateY(1px); }
+  .page-card.is-cover .cover-style-btn { display:inline-flex; }
+
+  /* Cover page content is now directly editable text (not a separate read-only placeholder) —
+     click the heading/subtitle on the cover and type to change it, same as any other page.
+     Colors/layout come from --cover-* custom properties set by applyCoverStyleToEditor(),
+     and the layout variant is driven by [data-cover-layout] on the page card itself. */
+  .page-card.is-cover .page-card-body { position:relative; }
+  .page-card.is-cover .editor {
+    display:flex;
+    height:100%;
+    overflow-y:auto;
+  }
+  .page-card.is-cover .editor:empty:before { content:none; }
+  .cover-hero {
+    display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
     gap:14px;
     text-align:center;
-    pointer-events:none;
+    width:100%;
     padding:20px;
+    position:relative;
   }
-  .page-card.is-cover .editor:empty ~ .cover-placeholder { display:flex; position:absolute; inset:0; }
-  .page-card.is-cover .editor:empty:before { content:none; }
-  .cover-placeholder img { width:64px; height:64px; border-radius:16px; box-shadow:0 10px 24px -8px rgba(43,124,246,0.35); flex:none; }
-  .cover-placeholder h1 { margin:0; font-size:clamp(22px,3.2vw,34px); font-weight:900; letter-spacing:-0.01em; color:#0B1B3D; }
-  .cover-placeholder h1 span { color:#2B7CF6; }
-  .cover-placeholder p { margin:0; font-size:13.5px; color:#8A93A3; }
+  .editor .cover-hero-logo { width:64px; height:64px; max-width:64px; border-radius:16px; box-shadow:0 10px 24px -8px rgba(43,124,246,0.35); flex:none; margin:0; }
+  .editor .cover-hero-title { margin:0; font-size:clamp(22px,3.2vw,34px); font-weight:900; letter-spacing:-0.01em; color:var(--cover-ink, #0B1B3D); outline:none; }
+  .cover-hero-title:focus, .cover-hero-sub:focus { outline:none; }
+  .cover-hero-accent { color:var(--cover-accent, #2B7CF6); }
+  .editor .cover-hero-sub { margin:0; font-size:13.5px; color:var(--cover-sub, #8A93A3); outline:none; }
+  .page-card.is-cover[data-cover-layout="left"] .cover-hero { align-items:flex-start; text-align:left; padding:20px 24px 20px 46px; }
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero {
+    background-image:var(--cover-bg-image, none);
+    background-size:cover; background-position:center;
+    align-items:flex-start; justify-content:flex-end; text-align:left;
+    padding:32px; height:100%; box-sizing:border-box;
+  }
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero:before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(0deg, rgba(0,0,0,.62), rgba(0,0,0,0) 60%);
+    pointer-events:none;
+  }
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero > * { position:relative; z-index:1; }
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero-title,
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero-accent,
+  .page-card.is-cover[data-cover-layout="image"] .cover-hero-sub { color:#fff; }
   .slide-eyebrow-badge {
     display:inline-flex;
     align-items:center;
@@ -903,6 +970,32 @@
         </div>
       </div>
 
+      <div class="modal-overlay" id="coverStyleOverlay" onclick="closeCoverStyleOnOverlay(event)">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h2>สไตล์หน้าปก</h2>
+            <button type="button" class="modal-close" onclick="closeCoverStyle()">&times;</button>
+          </div>
+          <div class="style-section">
+            <p class="style-section-title">โทนสี</p>
+            <div class="theme-swatch-row" id="themeSwatchRow"></div>
+          </div>
+          <div class="style-section">
+            <p class="style-section-title">รูปแบบ</p>
+            <div class="layout-option-row" id="layoutOptionRow"></div>
+          </div>
+          <div class="style-section">
+            <p class="style-section-title">รูปพื้นหลังของคุณเอง (ใช้กับรูปแบบ "เต็มภาพพื้นหลัง")</p>
+            <div class="bg-upload-row">
+              <div class="bg-upload-preview" id="bgUploadPreview"></div>
+              <button type="button" class="btn-pill btn-pill-outline" onclick="triggerCoverBgUpload()">อัปโหลดรูป</button>
+              <button type="button" class="btn-pill btn-pill-outline" id="removeCoverBgBtn" onclick="removeCoverBgImage()" style="display:none;">ลบรูป</button>
+              <input type="file" id="coverBgInput" accept="image/*" style="display:none" onchange="handleCoverBgUpload(event)">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid manual-grid">
         <div class="panel">
           <p class="panel-heading"><span class="dot"></span> หน้าคู่มือ</p>
@@ -911,6 +1004,12 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             เพิ่มหน้าใหม่
           </button>
+          <button class="btn btn-secondary" onclick="triggerDocxImport()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 2v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 12v6m0 0-2.5-2.5M12 18l2.5-2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            นำเข้าจาก Word (.docx)
+          </button>
+          <input type="file" id="docxInput" accept=".docx" style="display:none" onchange="handleDocxImport(event)">
+          <p class="hint" style="margin-top:2px;" id="docxImportStatus"></p>
 
           <div style="height:1px;background:#F0F2F6;margin:18px 0;"></div>
 
@@ -961,14 +1060,13 @@
             <div class="page-card-topline">
               <span class="slide-eyebrow-badge"><span class="dot"></span><span id="pageNumBadge">หน้า 1/8</span></span>
             </div>
+            <button type="button" class="cover-style-btn" id="coverStyleBtn" onclick="openCoverStyle()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="14.5" r="1.3" fill="currentColor"/></svg>
+              สไตล์หน้าปก
+            </button>
             <input type="text" id="pageTitleInput" class="page-title-input" placeholder="ชื่อหน้า" oninput="updateActiveTitle(this.value)">
             <div class="page-card-body">
               <div id="editor" class="editor" contenteditable="true" oninput="saveActivePageContent()"></div>
-              <div class="cover-placeholder">
-                <img id="coverPlaceholderLogo" src="" alt="Easy CRM">
-                <h1>ยินดีต้อนรับสู่ <span>Easy CRM</span></h1>
-                <p>คู่มือการใช้งานฉบับสมบูรณ์</p>
-              </div>
             </div>
             <div class="page-card-footer">Easy CRM · คู่มือการใช้งาน</div>
           </div>
@@ -980,10 +1078,9 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
 const LOGO = "data:image/png;base64,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";
-
-document.getElementById('coverPlaceholderLogo').src = LOGO;
 
 function esc(s) {
   const d = document.createElement('div');
@@ -1220,6 +1317,7 @@ function applyCloudData(data) {
   nextPageId = maxId + 1;
   activePageId = manualPages[0].id;
   document.getElementById('manualNameInput').value = data.name || 'คู่มือการใช้งานระบบ Easy CRM';
+  coverStyle = data.coverStyle ? JSON.parse(JSON.stringify(data.coverStyle)) : defaultCoverStyle();
   renderActivePageIntoEditor();
   cloudLastKnownUpdatedAt = data.updatedAt;
   updateManualSaveStatus(data.updatedAt);
@@ -1289,7 +1387,7 @@ function pushManualToCloud() {
   const name = (nameInput.value || '').trim() || 'คู่มือไม่มีชื่อ';
   const now = new Date().toISOString();
   setCloudStatus('syncing', 'กำลังบันทึก...');
-  const payload = { name: name, pages: manualPages, updatedAt: now };
+  const payload = { name: name, pages: manualPages, coverStyle: coverStyle, updatedAt: now };
   return fbDb.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID).set(payload)
     .then(function () {
       cloudLastKnownUpdatedAt = now;
@@ -1362,6 +1460,150 @@ let activePageId = 1;
 let nextPageId = 9;
 let savedRange = null;
 let currentManualId = null;
+
+/* ---------- Cover page style (color theme + layout + optional custom background) ---------- */
+const COVER_THEMES = {
+  blue:   { name: 'ฟ้า',      bg: 'linear-gradient(160deg,#EAF3FF 0%, #EFF5FF 55%, #FFFFFF 100%)', accent: '#2B7CF6', ink: '#0B1B3D', sub: '#8A93A3', swatch: 'linear-gradient(135deg,#2B7CF6,#EAF3FF)' },
+  green:  { name: 'เขียว',    bg: 'linear-gradient(160deg,#E9FBF1 0%, #EFFCF4 55%, #FFFFFF 100%)', accent: '#1B9C63', ink: '#0B2A1B', sub: '#6E8A7B', swatch: 'linear-gradient(135deg,#1B9C63,#E9FBF1)' },
+  purple: { name: 'ม่วง',     bg: 'linear-gradient(160deg,#F3EEFF 0%, #F6F2FF 55%, #FFFFFF 100%)', accent: '#7C4FE0', ink: '#241245', sub: '#8B80A8', swatch: 'linear-gradient(135deg,#7C4FE0,#F3EEFF)' },
+  orange: { name: 'ส้ม',      bg: 'linear-gradient(160deg,#FFF3E8 0%, #FFF6EE 55%, #FFFFFF 100%)', accent: '#E0722A', ink: '#3A1E0B', sub: '#A68868', swatch: 'linear-gradient(135deg,#E0722A,#FFF3E8)' },
+  dark:   { name: 'มืด',      bg: 'linear-gradient(160deg,#1A2035 0%, #12172A 55%, #0B0E1C 100%)', accent: '#6AA6FF', ink: '#FFFFFF', sub: '#94A0BF', swatch: 'linear-gradient(135deg,#12172A,#3A4568)' },
+  mono:   { name: 'โมโนโทน',  bg: 'linear-gradient(160deg,#F3F4F6 0%, #F7F8F9 55%, #FFFFFF 100%)', accent: '#3A4150', ink: '#1A1A1A', sub: '#8A93A3', swatch: 'linear-gradient(135deg,#3A4150,#F3F4F6)' }
+};
+const COVER_LAYOUTS = [
+  { key: 'center', name: 'กลาง' },
+  { key: 'left', name: 'ชิดซ้าย' },
+  { key: 'image', name: 'เต็มภาพพื้นหลัง' }
+];
+function defaultCoverStyle() { return { theme: 'blue', layout: 'center', bgImage: null }; }
+let coverStyle = defaultCoverStyle();
+
+/* หน้าปกเริ่มต้น: เนื้อหาจริงที่แก้ไขได้ตรง ๆ ในหน้าปก (ไม่ใช่แค่ placeholder ที่แก้ไม่ได้อีกต่อไป)
+   คลิกแล้วพิมพ์ทับได้ทันที เหมือนแก้ข้อความในหน้าอื่น ๆ ของคู่มือ */
+function buildDefaultCoverHtml() {
+  return '<div class="cover-hero">'
+    + '<img class="cover-hero-logo" src="' + LOGO + '" alt="Easy CRM" contenteditable="false">'
+    + '<h1 class="cover-hero-title">ยินดีต้อนรับสู่ <span class="cover-hero-accent">Easy CRM</span></h1>'
+    + '<p class="cover-hero-sub">คู่มือการใช้งานฉบับสมบูรณ์</p>'
+    + '</div>';
+}
+const DEFAULT_COVER_HTML = buildDefaultCoverHtml();
+
+/* เติมเนื้อหาเริ่มต้นให้หน้าปกถ้ายังว่างอยู่ (ไฟล์เก่าก่อนอัปเดตนี้ หรือหน้าปกที่ผู้ใช้ลบเนื้อหาออกจนหมด)
+   เพื่อให้มีข้อความจริงให้แก้ไข แทนที่จะเป็น placeholder ที่แก้ไม่ได้ */
+function ensureCoverDefaultContent() {
+  const page = manualPages[0];
+  if (!page || (page.html && page.html.trim())) return;
+  page.html = DEFAULT_COVER_HTML;
+  if (activePageId === page.id) {
+    const editorEl = document.getElementById('editor');
+    if (editorEl) editorEl.innerHTML = page.html;
+  }
+}
+
+function applyCoverStyleToEditor() {
+  const theme = COVER_THEMES[coverStyle.theme] || COVER_THEMES.blue;
+  const cardEl = document.getElementById('pageCard');
+  if (cardEl) {
+    cardEl.style.setProperty('--cover-bg', theme.bg);
+    cardEl.style.setProperty('--cover-accent', theme.accent);
+    cardEl.style.setProperty('--cover-ink', theme.ink);
+    cardEl.style.setProperty('--cover-sub', theme.sub);
+    cardEl.style.setProperty('--cover-bg-image', coverStyle.bgImage ? "url('" + coverStyle.bgImage + "')" : 'none');
+    cardEl.setAttribute('data-cover-layout', coverStyle.layout);
+  }
+}
+
+function openCoverStyle() {
+  renderCoverStyleModal();
+  document.getElementById('coverStyleOverlay').classList.add('active');
+}
+function closeCoverStyle() { document.getElementById('coverStyleOverlay').classList.remove('active'); }
+function closeCoverStyleOnOverlay(e) { if (e.target && e.target.id === 'coverStyleOverlay') closeCoverStyle(); }
+
+function layoutIconSvg(key) {
+  if (key === 'center') return '<svg width="26" height="16" viewBox="0 0 26 16" fill="none"><rect width="26" height="16" rx="3" fill="#E7EEFB"/><rect x="9" y="3" width="8" height="6" rx="2" fill="#2B7CF6"/><rect x="7" y="12" width="12" height="2" rx="1" fill="#B7C2D6"/></svg>';
+  if (key === 'left') return '<svg width="26" height="16" viewBox="0 0 26 16" fill="none"><rect width="26" height="16" rx="3" fill="#E7EEFB"/><rect x="3" y="3" width="8" height="6" rx="2" fill="#2B7CF6"/><rect x="3" y="12" width="12" height="2" rx="1" fill="#B7C2D6"/></svg>';
+  return '<svg width="26" height="16" viewBox="0 0 26 16" fill="none"><rect width="26" height="16" rx="3" fill="#8A93A3"/><rect x="0" y="8" width="26" height="8" rx="0" fill="#3A4150"/><rect x="4" y="10" width="12" height="2" rx="1" fill="#fff"/><rect x="4" y="13" width="8" height="1.6" rx="0.8" fill="#fff"/></svg>';
+}
+
+function renderCoverStyleModal() {
+  const swatchRow = document.getElementById('themeSwatchRow');
+  swatchRow.innerHTML = '';
+  Object.keys(COVER_THEMES).forEach(function (key) {
+    const theme = COVER_THEMES[key];
+    const item = document.createElement('div');
+    item.className = 'theme-swatch-item';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-swatch' + (coverStyle.theme === key ? ' active' : '');
+    btn.style.background = theme.swatch;
+    btn.title = theme.name;
+    btn.onclick = function () {
+      coverStyle.theme = key;
+      applyCoverStyleToEditor();
+      renderCoverStyleModal();
+      saveActivePageContent();
+    };
+    const label = document.createElement('div');
+    label.className = 'theme-swatch-label';
+    label.textContent = theme.name;
+    item.appendChild(btn);
+    item.appendChild(label);
+    swatchRow.appendChild(item);
+  });
+
+  const layoutRow = document.getElementById('layoutOptionRow');
+  layoutRow.innerHTML = '';
+  COVER_LAYOUTS.forEach(function (opt) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'layout-option' + (coverStyle.layout === opt.key ? ' active' : '');
+    card.innerHTML = '<div class="layout-option-icon">' + layoutIconSvg(opt.key) + '</div><div class="layout-option-name">' + opt.name + '</div>';
+    card.onclick = function () {
+      if (opt.key === 'image' && !coverStyle.bgImage) {
+        triggerCoverBgUpload();
+        return;
+      }
+      coverStyle.layout = opt.key;
+      applyCoverStyleToEditor();
+      renderCoverStyleModal();
+      saveActivePageContent();
+    };
+    layoutRow.appendChild(card);
+  });
+
+  const preview = document.getElementById('bgUploadPreview');
+  preview.style.backgroundImage = coverStyle.bgImage ? "url('" + coverStyle.bgImage + "')" : 'none';
+  document.getElementById('removeCoverBgBtn').style.display = coverStyle.bgImage ? 'inline-flex' : 'none';
+}
+
+function triggerCoverBgUpload() {
+  document.getElementById('coverBgInput').value = '';
+  document.getElementById('coverBgInput').click();
+}
+
+function handleCoverBgUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    coverStyle.bgImage = e.target.result;
+    coverStyle.layout = 'image';
+    applyCoverStyleToEditor();
+    renderCoverStyleModal();
+    saveActivePageContent();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCoverBgImage() {
+  coverStyle.bgImage = null;
+  if (coverStyle.layout === 'image') coverStyle.layout = 'center';
+  applyCoverStyleToEditor();
+  renderCoverStyleModal();
+  saveActivePageContent();
+}
 
 const DEFAULT_NEW_MANUAL_PAGES = [
   { id: 1, title: 'หน้าปก', html: '', hint: 'หน้าปกเป็นหน้าเปล่า แทรกรูปภาพหน้าปกสำเร็จรูปได้เลยจากปุ่ม "แทรกรูป" แล้วลากมุมเพื่อปรับขนาด หรือลากรูปเพื่อย้ายตำแหน่งได้' },
@@ -1467,13 +1709,14 @@ function saveCurrentManual() {
     if (idx > -1) {
       list[idx].name = name;
       list[idx].pages = manualPages;
+      list[idx].coverStyle = coverStyle;
       list[idx].updatedAt = now;
     } else {
-      list.push({ id: currentManualId, name: name, pages: manualPages, createdAt: now, updatedAt: now });
+      list.push({ id: currentManualId, name: name, pages: manualPages, coverStyle: coverStyle, createdAt: now, updatedAt: now });
     }
   } else {
     currentManualId = genManualId();
-    list.push({ id: currentManualId, name: name, pages: manualPages, createdAt: now, updatedAt: now });
+    list.push({ id: currentManualId, name: name, pages: manualPages, coverStyle: coverStyle, createdAt: now, updatedAt: now });
   }
   persistManualProjects(list);
   updateManualSaveStatus(now);
@@ -1548,6 +1791,7 @@ function loadManualProject(id) {
   manualPages = JSON.parse(JSON.stringify(m.pages));
   currentManualId = m.id;
   document.getElementById('manualNameInput').value = m.name || '';
+  coverStyle = m.coverStyle ? JSON.parse(JSON.stringify(m.coverStyle)) : defaultCoverStyle();
   updateManualSaveStatus(m.updatedAt);
   const maxId = manualPages.reduce((mx, p) => Math.max(mx, p.id), 0);
   nextPageId = maxId + 1;
@@ -1575,6 +1819,7 @@ function createNewManual() {
   nextPageId = manualPages.length + 1;
   activePageId = manualPages[0].id;
   document.getElementById('manualNameInput').value = '';
+  coverStyle = defaultCoverStyle();
   updateManualSaveStatus(null);
   renderActivePageIntoEditor();
   closeManualLibrary();
@@ -1704,6 +1949,8 @@ function updatePageNumBadge() {
   if (badge && idx > -1) badge.textContent = 'หน้า ' + (idx + 1) + '/' + manualPages.length;
   const cardEl = document.getElementById('pageCard');
   if (cardEl) cardEl.classList.toggle('is-cover', idx === 0);
+  ensureCoverDefaultContent();
+  if (idx === 0) applyCoverStyleToEditor();
 }
 
 function selectPage(id) {
@@ -1862,6 +2109,125 @@ function handleImageUpload(event) {
   reader.readAsDataURL(file);
 }
 
+/* ---------- Import content from a Word (.docx) file ----------
+   Converts the .docx to HTML with mammoth.js (loaded from a CDN — requires internet), wraps any
+   embedded images the same way the "แทรกรูป" button does (so they're resizable/draggable), and
+   splits the result into one page per top-level heading so a whole existing document can be
+   dropped in without retyping it. */
+function triggerDocxImport() {
+  document.getElementById('docxInput').value = '';
+  document.getElementById('docxInput').click();
+}
+
+function setDocxImportStatus(text, isError) {
+  const el = document.getElementById('docxImportStatus');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? '#C0392B' : '';
+}
+
+function wrapImportedImages(container) {
+  const imgs = Array.from(container.querySelectorAll('img'));
+  return Promise.all(imgs.map(function (img) {
+    return new Promise(function (resolve) {
+      const probe = new Image();
+      probe.onload = function () {
+        const maxW = 420;
+        let w = probe.naturalWidth || maxW;
+        let h = probe.naturalHeight || Math.round(maxW * 0.7);
+        if (w > maxW) {
+          h = Math.round(h * (maxW / w));
+          w = maxW;
+        }
+        const wrap = document.createElement('span');
+        wrap.className = 'img-wrap';
+        wrap.setAttribute('contenteditable', 'false');
+        wrap.setAttribute('draggable', 'true');
+        wrap.style.width = w + 'px';
+        wrap.style.height = h + 'px';
+        img.setAttribute('draggable', 'false');
+        img.removeAttribute('style');
+        img.removeAttribute('width');
+        img.removeAttribute('height');
+        img.parentNode.insertBefore(wrap, img);
+        wrap.appendChild(img);
+        resolve();
+      };
+      probe.onerror = function () { resolve(); };
+      probe.src = img.src;
+    });
+  }));
+}
+
+// Splits mammoth's flat output into one page per top-level <h2> (headings in the .docx are
+// mapped to h2, since that's the only heading level this editor's toolbar supports).
+function splitDocxHtmlIntoPages(container, baseName) {
+  const nodes = Array.from(container.childNodes);
+  const pages = [];
+  let current = null;
+  nodes.forEach(function (node) {
+    const isHeading = node.nodeType === 1 && node.tagName === 'H2';
+    if (isHeading) {
+      current = { title: (node.textContent || '').trim() || 'หน้าที่นำเข้า', html: '' };
+      pages.push(current);
+      return;
+    }
+    if (!current) {
+      current = { title: baseName || 'เนื้อหานำเข้า', html: '' };
+      pages.push(current);
+    }
+    if (node.nodeType === 1) {
+      current.html += node.outerHTML;
+    } else if (node.nodeType === 3 && node.textContent.trim()) {
+      current.html += '<p>' + escapeHtml(node.textContent.trim()) + '</p>';
+    }
+  });
+  if (!pages.length) pages.push({ title: baseName || 'เนื้อหานำเข้า', html: container.innerHTML });
+  return pages;
+}
+
+function handleDocxImport(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (typeof mammoth === 'undefined') {
+    setDocxImportStatus('โหลดตัวแปลงไฟล์ Word ไม่สำเร็จ ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่', true);
+    return;
+  }
+  setDocxImportStatus('กำลังนำเข้า "' + file.name + '"...', false);
+  const styleMap = [
+    "p[style-name='Heading 1'] => h2:fresh",
+    "p[style-name='Heading 2'] => h2:fresh",
+    "p[style-name='Heading 3'] => h2:fresh",
+    "p[style-name='Title'] => h2:fresh"
+  ];
+  file.arrayBuffer()
+    .then(function (arrayBuffer) { return mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, { styleMap: styleMap }); })
+    .then(function (result) {
+      const container = document.createElement('div');
+      container.innerHTML = result.value;
+      return wrapImportedImages(container).then(function () { return container; });
+    })
+    .then(function (container) {
+      const baseName = file.name.replace(/\.docx$/i, '') || 'เนื้อหานำเข้า';
+      const pages = splitDocxHtmlIntoPages(container, baseName);
+      saveActivePageContent();
+      let firstNewId = null;
+      pages.forEach(function (p) {
+        const page = { id: nextPageId, title: p.title, html: p.html, hint: DEFAULT_HINT };
+        nextPageId += 1;
+        manualPages.push(page);
+        if (firstNewId === null) firstNewId = page.id;
+      });
+      regenerateTocPage();
+      selectPage(firstNewId);
+      setDocxImportStatus('นำเข้าสำเร็จ: เพิ่ม ' + pages.length + ' หน้าจาก "' + file.name + '"', false);
+    })
+    .catch(function (err) {
+      console.error('docx import failed:', err);
+      setDocxImportStatus('นำเข้าไฟล์ไม่สำเร็จ: ' + (err && err.message ? err.message : 'เกิดข้อผิดพลาด'), true);
+    });
+}
+
 // Drag-to-reposition: images can be dragged and dropped anywhere within the page content
 let draggedImgWrap = null;
 function initImageDragMove() {
@@ -2009,7 +2375,20 @@ body{
   overflow-y:auto;
   font-size:14.5px;line-height:1.85;color:#2A2E36;flex:1;min-height:0;
 }
-.book-page.cover .book-page-body{padding:0;}
+.book-page.cover .book-page-body{padding:0;height:100%;}
+.cover-hero{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 32px;text-align:center;position:relative;overflow-y:auto;}
+.cover-hero img{max-width:70%;border-radius:14px;display:block;margin:0 auto;}
+.book-page-body .cover-hero-logo{width:64px;height:64px;max-width:64px;border-radius:16px;box-shadow:0 8px 24px rgba(11,27,61,.18);flex:none;margin:0;}
+.book-page-body .cover-hero-title{font-size:clamp(20px,5vw,30px);font-weight:900;letter-spacing:-.02em;margin:0;color:var(--cover-ink,#1A1A1A);}
+.cover-hero-accent{color:var(--cover-accent,var(--brand));}
+.book-page-body .cover-hero-sub{font-size:13.5px;max-width:320px;margin:0;color:var(--cover-sub,#5B6B8E);}
+.book-page.cover[data-cover-layout="left"] .cover-hero{align-items:flex-start;text-align:left;padding:40px 28px 40px 40px;}
+.book-page.cover[data-cover-layout="image"] .cover-hero{align-items:flex-start;justify-content:flex-end;text-align:left;padding:40px 28px;background-image:var(--cover-bg-image,none);background-size:cover;background-position:center;}
+.book-page.cover[data-cover-layout="image"] .cover-hero:before{content:'';position:absolute;inset:0;background:linear-gradient(0deg, rgba(0,0,0,.62), rgba(0,0,0,0) 60%);pointer-events:none;}
+.book-page.cover[data-cover-layout="image"] .cover-hero>*{position:relative;z-index:1;}
+.book-page.cover[data-cover-layout="image"] .cover-hero-title,
+.book-page.cover[data-cover-layout="image"] .cover-hero-accent,
+.book-page.cover[data-cover-layout="image"] .cover-hero-sub{color:#fff;}
 .book-page-body h2{font-size:18px;font-weight:800;margin:20px 0 10px 0;color:#1A1A1A;padding-left:12px;border-left:4px solid var(--brand);}
 .book-page-body h2:first-child{margin-top:0;}
 .book-page-body p{margin:0 0 14px 0;}
@@ -2031,12 +2410,32 @@ body{
 const EBOOK_JS = `
 var idx = 0;
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function buildDefaultCoverFallback(){
+  return '<div class="cover-hero"><img class="cover-hero-logo" src="' + LOGO_SRC + '" alt="Easy CRM"><h1 class="cover-hero-title">ยินดีต้อนรับสู่ <span class="cover-hero-accent">Easy CRM</span></h1><p class="cover-hero-sub">คู่มือการใช้งานฉบับสมบูรณ์</p></div>';
+}
 function renderPage(){
   var p = PAGES[idx];
   var pageEl = document.getElementById('bkPage');
-  pageEl.classList.toggle('cover', idx === 0);
-  var headerHtml = idx === 0 ? '' : ('<div class="book-page-header"><span class="book-page-badge">หน้า ' + (idx+1) + '/' + PAGES.length + '</span><h1>' + esc(p.title) + '</h1></div>');
-  pageEl.innerHTML = headerHtml + '<div class="book-page-body">' + (p.html || '') + '</div>';
+  var isCover = idx === 0;
+  pageEl.classList.toggle('cover', isCover);
+  var headerHtml = isCover ? '' : ('<div class="book-page-header"><span class="book-page-badge">หน้า ' + (idx+1) + '/' + PAGES.length + '</span><h1>' + esc(p.title) + '</h1></div>');
+  var bodyHtml;
+  if (isCover) {
+    var theme = (COVER_THEMES && COVER_THEMES[COVER_STYLE.theme]) || (COVER_THEMES && COVER_THEMES.blue) || {bg:'linear-gradient(160deg,#EAF3FF 0%, #EFF5FF 55%, #FFFFFF 100%)',accent:'#2B7CF6',ink:'#0B1B3D',sub:'#8A93A3'};
+    var layout = COVER_STYLE.layout || 'center';
+    pageEl.style.background = theme.bg;
+    pageEl.style.setProperty('--cover-ink', theme.ink);
+    pageEl.style.setProperty('--cover-accent', theme.accent);
+    pageEl.style.setProperty('--cover-sub', theme.sub);
+    pageEl.style.setProperty('--cover-bg-image', (layout === 'image' && COVER_STYLE.bgImage) ? ('url(' + COVER_STYLE.bgImage + ')') : 'none');
+    pageEl.setAttribute('data-cover-layout', layout);
+    bodyHtml = (p.html && p.html.trim().length > 0) ? p.html : buildDefaultCoverFallback();
+  } else {
+    pageEl.style.background = '';
+    pageEl.removeAttribute('data-cover-layout');
+    bodyHtml = (p.html || '');
+  }
+  pageEl.innerHTML = headerHtml + '<div class="book-page-body">' + bodyHtml + '</div>';
   document.getElementById('bkCounter').textContent = 'หน้า ' + (idx+1) + ' จาก ' + PAGES.length;
   document.getElementById('bkPrev').disabled = (idx === 0);
   document.getElementById('bkNext').disabled = (idx === PAGES.length - 1);
@@ -2077,6 +2476,8 @@ function buildEbookHTML() {
   saveActivePageContent();
   const pages = manualPages.map(p => ({ title: p.title || '', html: p.html || '' }));
   const pagesJSON = JSON.stringify(pages).replace(/<\/script/gi, '<\\/script');
+  const coverStyleJSON = JSON.stringify(coverStyle).replace(/<\/script/gi, '<\\/script');
+  const coverThemesJSON = JSON.stringify(COVER_THEMES).replace(/<\/script/gi, '<\\/script');
   const chevronLeft = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const chevronRight = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -2100,6 +2501,9 @@ function buildEbookHTML() {
     + '</div>\n'
     + '<' + 'script>\n'
     + 'var PAGES = ' + pagesJSON + ';\n'
+    + 'var COVER_STYLE = ' + coverStyleJSON + ';\n'
+    + 'var COVER_THEMES = ' + coverThemesJSON + ';\n'
+    + 'var LOGO_SRC = ' + JSON.stringify(LOGO) + ';\n'
     + EBOOK_JS
     + '<' + '/script>\n'
     + '</body>\n'
@@ -2207,35 +2611,41 @@ body{
 .img-wrap{display:inline-block;overflow:hidden;border-radius:10px;margin:8px 4px;vertical-align:top;}
 .img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
 
-.cover-content{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:52px 60px;text-align:center;overflow-y:auto;}
-.cover-content img{max-width:60%;border-radius:16px;display:block;margin:0 auto;}
-.cover-fallback{display:flex;flex-direction:column;align-items:center;gap:16px;padding:52px 60px;}
-.cover-fallback img.logo{width:76px;height:76px;border-radius:18px;box-shadow:var(--shadow-md);}
-.cover-fallback h1{font-size:clamp(24px,3.6vw,40px);font-weight:900;letter-spacing:-.02em;color:var(--ink-900);}
-.cover-fallback h1 span{color:var(--blue-600);}
-.cover-fallback p{color:var(--ink-500);font-size:14px;max-width:420px;}
+.cover-hero{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:52px 60px;text-align:center;position:relative;overflow-y:auto;}
+.cover-hero img{max-width:60%;border-radius:16px;display:block;margin:0 auto;}
+.slide-canvas .cover-hero-logo{width:76px;height:76px;border-radius:18px;box-shadow:var(--shadow-md);flex:none;margin:0;}
+.cover-hero-title{font-size:clamp(24px,3.6vw,40px);font-weight:900;letter-spacing:-.02em;margin:0;color:var(--cover-ink,var(--ink-900));}
+.cover-hero-accent{color:var(--cover-accent,var(--blue-600));}
+.cover-hero-sub{color:var(--cover-sub,var(--ink-500));font-size:14px;max-width:420px;margin:0;}
+.slide-canvas.is-cover[data-cover-layout="left"] .cover-hero{align-items:flex-start;text-align:left;padding:52px 60px 52px 92px;}
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero{align-items:flex-start;justify-content:flex-end;text-align:left;padding:52px 60px;background-image:var(--cover-bg-image,none);background-size:cover;background-position:center;}
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero:before{content:'';position:absolute;inset:0;background:linear-gradient(0deg, rgba(0,0,0,.62), rgba(0,0,0,0) 60%);pointer-events:none;}
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero>*{position:relative;z-index:1;}
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero-title,
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero-accent,
+.slide-canvas.is-cover[data-cover-layout="image"] .cover-hero-sub{color:#fff;}
 
 @media (max-width:760px){
   .side-nav{width:38px;height:38px;}
   .slide{padding:84px 16px 20px;}
   .slide-canvas{aspect-ratio:auto;height:100%;padding:22px 20px 16px;border-radius:16px;}
   .slide-body{padding:18px 16px;}
-  .cover-content,.cover-fallback{padding:32px 24px;}
+  .cover-hero{padding:32px 24px;}
 }
 `;
 
 const SLIDES_JS = `
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function buildDefaultCoverFallback(){
+  return '<div class="cover-hero"><img class="cover-hero-logo" src="' + LOGO_SRC + '" alt="Easy CRM"><h1 class="cover-hero-title">ยินดีต้อนรับสู่ <span class="cover-hero-accent">Easy CRM</span></h1><p class="cover-hero-sub">คู่มือการใช้งานฉบับสมบูรณ์</p></div>';
+}
 function buildSlideInner(p, i){
   if(i === 0){
-    var hasContent = (p.html && p.html.replace(/<[^>]*>/g,'').trim().length > 0) || /<img/i.test(p.html||'');
-    var inner;
-    if (hasContent) {
-      inner = '<div class="cover-content">' + p.html + '</div>';
-    } else {
-      inner = '<div class="cover-fallback"><img class="logo" src="' + LOGO_SRC + '" alt="Easy CRM"><h1>ยินดีต้อนรับสู่ <span>Easy CRM</span></h1><p>คู่มือการใช้งานฉบับสมบูรณ์</p></div>';
-    }
-    return '<div class="slide-inner stagger"><div class="slide-canvas is-cover">' + inner + '</div></div>';
+    var theme = (COVER_THEMES && COVER_THEMES[COVER_STYLE.theme]) || (COVER_THEMES && COVER_THEMES.blue) || {bg:'linear-gradient(160deg,#EAF3FF 0%, #EFF5FF 55%, #FFFFFF 100%)',accent:'#2B7CF6',ink:'#0B1B3D',sub:'#8A93A3'};
+    var layout = COVER_STYLE.layout || 'center';
+    var canvasStyle = 'background:' + theme.bg + ';--cover-ink:' + theme.ink + ';--cover-accent:' + theme.accent + ';--cover-sub:' + theme.sub + ';' + ((layout === 'image' && COVER_STYLE.bgImage) ? ('--cover-bg-image:url(' + COVER_STYLE.bgImage + ');') : '');
+    var content = (p.html && p.html.trim().length > 0) ? p.html : buildDefaultCoverFallback();
+    return '<div class="slide-inner stagger"><div class="slide-canvas is-cover" data-cover-layout="' + layout + '" style="' + canvasStyle + '">' + content + '</div></div>';
   }
   return '<div class="slide-inner stagger"><div class="slide-canvas">' +
     '<div class="slide-header"><span class="slide-eyebrow"><span class="dot"></span>หน้า ' + (i+1) + ' / ' + PAGES.length + '</span>' +
@@ -2335,6 +2745,8 @@ function buildSlidesHTML() {
   saveActivePageContent();
   const pages = manualPages.map(p => ({ title: p.title || '', html: p.html || '' }));
   const pagesJSON = JSON.stringify(pages).replace(/<\/script/gi, '<\\/script');
+  const coverStyleJSON = JSON.stringify(coverStyle).replace(/<\/script/gi, '<\\/script');
+  const coverThemesJSON = JSON.stringify(COVER_THEMES).replace(/<\/script/gi, '<\\/script');
   const chevronLeft = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const chevronRight = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -2359,6 +2771,8 @@ function buildSlidesHTML() {
     + '<main class="deck" id="deck"><div class="track" id="track"></div></main>\n'
     + '<' + 'script>\n'
     + 'var PAGES = ' + pagesJSON + ';\n'
+    + 'var COVER_STYLE = ' + coverStyleJSON + ';\n'
+    + 'var COVER_THEMES = ' + coverThemesJSON + ';\n'
     + 'var LOGO_SRC = ' + JSON.stringify(LOGO) + ';\n'
     + SLIDES_JS
     + '<' + '/script>\n'
