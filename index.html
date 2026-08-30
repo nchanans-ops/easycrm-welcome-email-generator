@@ -793,6 +793,10 @@
     content:attr(data-hint);
     color:#B0B8C4;
   }
+  /* Dedicated block-level wrapper around an image so text-align (left/center/right) has a
+     full-width box to align the inline-block .img-wrap within, no matter what paragraph or
+     list item it landed in. */
+  .editor .img-align { display:block; margin:10px 0; }
   /* Inserted images: resizable (drag bottom-right corner) and draggable to reposition */
   .editor .img-wrap {
     display:inline-block;
@@ -1313,6 +1317,7 @@ function hideCloudUpdateBanner() {
 function applyCloudData(data) {
   if (!data || !data.pages || !data.pages.length) return;
   manualPages = JSON.parse(JSON.stringify(data.pages));
+  migrateManualPages(manualPages);
   const maxId = manualPages.reduce((mx, p) => Math.max(mx, p.id), 0);
   nextPageId = maxId + 1;
   activePageId = manualPages[0].id;
@@ -1789,6 +1794,7 @@ function loadManualProject(id) {
   const m = list.find(x => x.id === id);
   if (!m || !m.pages || !m.pages.length) return;
   manualPages = JSON.parse(JSON.stringify(m.pages));
+  migrateManualPages(manualPages);
   currentManualId = m.id;
   document.getElementById('manualNameInput').value = m.name || '';
   coverStyle = m.coverStyle ? JSON.parse(JSON.stringify(m.coverStyle)) : defaultCoverStyle();
@@ -2036,10 +2042,47 @@ function execCmd(cmd, value) {
 
 /* Alignment: images are inserted as a display:inline-block "img-wrap" span (so they can be
    resized/dragged), which the browser's native justifyLeft/Center/Right command often can't
-   reliably center — clicking a selected image and hitting align applies it directly to that
-   image (switches it to a block with auto margins) instead of relying on execCommand. Plain
-   text selections still go through the normal execCommand path. */
+   reliably center. Clicking a selected image and hitting align now wraps it in its own
+   block-level "img-align" div and sets text-align on THAT div — the standard, bulletproof way
+   to align an inline-block element regardless of what paragraph/list it happens to sit inside
+   (a previous version tried display:block + margin:auto directly on the image, which silently
+   failed to center whenever the image ended up nested inside a <li> or other narrow block).
+   Plain text selections still go through the normal execCommand path. */
 let selectedImgWrap = null;
+
+/* ย้ายรูปที่เคยจัดกึ่งกลาง/ชิดซ้าย/ชิดขวาด้วยกลไกเก่า (display:block + margin ตรงตัว .img-wrap เอง
+   ซึ่งพังเมื่อรูปอยู่ใน <li> หรือ block แคบๆ) มาใช้กลไกใหม่ (ครอบด้วย .img-align + text-align)
+   โดยอัตโนมัติ — รันตอนโหลดข้อมูล ไม่ต้องให้ผู้ใช้กดจัดตำแหน่งซ้ำเองทีละรูป */
+function migrateLegacyImageAlignment(html) {
+  if (!html || html.indexOf('img-wrap') === -1) return html;
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  let changed = false;
+  temp.querySelectorAll('.img-wrap').forEach(function (wrap) {
+    if (wrap.closest('.img-align')) return; // ย้ายมาแล้ว ไม่ต้องทำซ้ำ
+    const style = wrap.getAttribute('style') || '';
+    if (!/display\s*:\s*block/i.test(style) && !/margin/i.test(style)) return; // รูปปกติ ไม่เคยจัดตำแหน่งแบบเก่า
+    let align = 'center';
+    if (/margin-left\s*:\s*auto/i.test(style) && !/margin-right\s*:\s*auto/i.test(style)) align = 'right';
+    else if (/margin-right\s*:\s*auto/i.test(style) && !/margin-left\s*:\s*auto/i.test(style)) align = 'left';
+    wrap.style.display = '';
+    wrap.style.margin = '';
+    const container = document.createElement('div');
+    container.className = 'img-align';
+    container.style.textAlign = align;
+    wrap.parentNode.insertBefore(container, wrap);
+    container.appendChild(wrap);
+    changed = true;
+  });
+  return changed ? temp.innerHTML : html;
+}
+
+function migrateManualPages(pages) {
+  if (!pages) return;
+  pages.forEach(function (p) {
+    if (p && p.html) p.html = migrateLegacyImageAlignment(p.html);
+  });
+}
 
 function selectImgWrap(wrap) {
   document.querySelectorAll('#editor .img-wrap.selected').forEach(function (el) { el.classList.remove('selected'); });
@@ -2050,10 +2093,18 @@ function selectImgWrap(wrap) {
 function alignContent(align) {
   const editor = document.getElementById('editor');
   if (selectedImgWrap && editor.contains(selectedImgWrap)) {
-    selectedImgWrap.style.display = 'block';
-    if (align === 'center') selectedImgWrap.style.margin = '10px auto';
-    else if (align === 'left') selectedImgWrap.style.margin = '10px auto 10px 0';
-    else selectedImgWrap.style.margin = '10px 0 10px auto';
+    // เคลียร์วิธีจัดกึ่งกลางแบบเก่า (display:block + margin:auto) ที่เคยตั้งไว้บนตัวรูปโดยตรง
+    // เผื่อรูปนี้เคยถูกจัดด้วยวิธีเดิมมาก่อน จะได้ไม่ตีกับ text-align ของ wrapper ใหม่
+    selectedImgWrap.style.display = '';
+    selectedImgWrap.style.margin = '';
+    let container = selectedImgWrap.closest('.img-align');
+    if (!container || !editor.contains(container)) {
+      container = document.createElement('div');
+      container.className = 'img-align';
+      selectedImgWrap.parentNode.insertBefore(container, selectedImgWrap);
+      container.appendChild(selectedImgWrap);
+    }
+    container.style.textAlign = align;
     saveActivePageContent();
     return;
   }
@@ -2394,6 +2445,7 @@ body{
 .book-page-body p{margin:0 0 14px 0;}
 .book-page-body ul,.book-page-body ol{margin:0 0 14px 0;padding-left:22px;}
 .book-page-body img{max-width:100%;border-radius:8px;margin:14px 0;display:block;}
+.img-align{display:block;margin:10px 0;}
 .img-wrap{display:inline-block;overflow:hidden;border-radius:8px;margin:6px 4px;vertical-align:top;}
 .img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
 .book-footer{margin-top:20px;display:flex;flex-direction:column;align-items:center;gap:8px;}
@@ -2474,6 +2526,7 @@ renderPage();
 
 function buildEbookHTML() {
   saveActivePageContent();
+  migrateManualPages(manualPages);
   const pages = manualPages.map(p => ({ title: p.title || '', html: p.html || '' }));
   const pagesJSON = JSON.stringify(pages).replace(/<\/script/gi, '<\\/script');
   const coverStyleJSON = JSON.stringify(coverStyle).replace(/<\/script/gi, '<\\/script');
@@ -2608,6 +2661,7 @@ body{
 .slide-body .toc-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--blue-500);color:#fff;font-size:11px;font-weight:800;flex:none;}
 .slide-body .toc-text{flex:1;}
 .slide-body .toc-arrow{color:var(--blue-500);font-weight:800;}
+.img-align{display:block;margin:10px 0;}
 .img-wrap{display:inline-block;overflow:hidden;border-radius:10px;margin:8px 4px;vertical-align:top;}
 .img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -2673,9 +2727,29 @@ document.getElementById('slideTotal').textContent = String(TOTAL).padStart(2,'0'
 document.getElementById('slPrev').disabled = true;
 document.getElementById('slNext').disabled = (TOTAL <= 1);
 
+/* เลื่อนสไลด์เองด้วย requestAnimationFrame แทนการพึ่ง behavior:'smooth' ของเบราว์เซอร์
+   (ความเร็ว native smooth scroll คุมไม่ได้และมักเร็วเกินไป) ปรับความช้า/เร็วได้ที่ SLIDE_SCROLL_MS */
+var SLIDE_SCROLL_MS = 900;
+var scrollAnimId = null;
+function easeInOutCubic(t){ return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+function animateDeckScrollTo(targetLeft, duration){
+  if(scrollAnimId) cancelAnimationFrame(scrollAnimId);
+  /* scroll-snap-type ของ CSS จะ "ดึง" scrollLeft ให้กระโดดไปตำแหน่ง snap ทันทีระหว่างที่เราเลื่อนเอง
+     ปิดไว้ชั่วคราวระหว่างแอนิเมชัน แล้วคืนค่าคืนหลังเลื่อนเสร็จ (ให้การลากด้วยนิ้ว/เมาส์ยังสแนปได้ตามปกติ) */
+  deck.style.scrollSnapType = 'none';
+  var startLeft = deck.scrollLeft;
+  var startTime = null;
+  function step(ts){
+    if(!startTime) startTime = ts;
+    var t = Math.min(1, (ts - startTime) / duration);
+    deck.scrollLeft = startLeft + (targetLeft - startLeft) * easeInOutCubic(t);
+    if(t < 1){ scrollAnimId = requestAnimationFrame(step); } else { scrollAnimId = null; deck.style.scrollSnapType = ''; }
+  }
+  scrollAnimId = requestAnimationFrame(step);
+}
 function goTo(i){
   i = Math.max(0, Math.min(TOTAL-1, i));
-  deck.scrollTo({left: i*window.innerWidth, behavior:'smooth'});
+  animateDeckScrollTo(i*window.innerWidth, SLIDE_SCROLL_MS);
 }
 function updateUI(i){
   if(i === currentIndex) return;
@@ -2720,11 +2794,21 @@ deck.addEventListener('wheel', function(e){
   if(wheelLock) return;
   var dir = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
   if(Math.abs(dir) < 20) return;
+
+  /* ถ้าเมาส์อยู่เหนือกล่องเนื้อหาที่ยาวเกินจอและยังเลื่อนได้อีก ให้เลื่อนเนื้อหาในกล่องนั้นก่อน
+     อย่าเพิ่งกระโดดเปลี่ยนสไลด์ — เปลี่ยนสไลด์เฉพาะตอนเลื่อนเนื้อหาสุดขอบแล้วเท่านั้น */
+  var scrollable = e.target.closest && e.target.closest('.slide-body, .cover-hero');
+  if (scrollable && scrollable.scrollHeight > scrollable.clientHeight + 1) {
+    var atTop = scrollable.scrollTop <= 0;
+    var atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+    if ((dir < 0 && !atTop) || (dir > 0 && !atBottom)) return;
+  }
+
   e.preventDefault();
   wheelLock = true;
   if(dir > 0) goTo(currentIndex+1); else goTo(currentIndex-1);
   clearTimeout(wheelTO);
-  wheelTO = setTimeout(function(){ wheelLock = false; }, 700);
+  wheelTO = setTimeout(function(){ wheelLock = false; }, SLIDE_SCROLL_MS + 150);
 }, {passive:false});
 
 var touchX = 0;
@@ -2743,6 +2827,7 @@ window.addEventListener('resize', function(){
 
 function buildSlidesHTML() {
   saveActivePageContent();
+  migrateManualPages(manualPages);
   const pages = manualPages.map(p => ({ title: p.title || '', html: p.html || '' }));
   const pagesJSON = JSON.stringify(pages).replace(/<\/script/gi, '<\\/script');
   const coverStyleJSON = JSON.stringify(coverStyle).replace(/<\/script/gi, '<\\/script');
@@ -2855,6 +2940,7 @@ function downloadManual() {
 }
 
 function initManualEditor() {
+  migrateManualPages(manualPages);
   document.getElementById('pageTitleInput').value = manualPages[0].title;
   const editorEl = document.getElementById('editor');
   editorEl.innerHTML = manualPages[0].html;
