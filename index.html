@@ -622,6 +622,20 @@
   }
   .toolbar button:hover { background:#F0F2F6; border-color:#D7DCE5; }
   .toolbar-sep { width:1px; height:20px; background:#EAEDF2; margin:0 4px; }
+  .toolbar-fontsize { min-width:22px; text-align:center; font-size:12px; font-weight:700; color:#3A4150; font-variant-numeric:tabular-nums; }
+  .toolbar-color-btn {
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+    border:1.5px solid #E7EAF0; background:#FAFBFC; color:#3A4150;
+    font-size:12px; font-weight:700; font-family:inherit;
+    padding:6px 10px; border-radius:7px; cursor:pointer;
+    box-shadow:inset 0 -3px 0 0 var(--toolbar-text-color, #2B7CF6);
+  }
+  .toolbar-color-btn:hover { background:#F0F2F6; border-color:#D7DCE5; }
+  .toolbar-color-btn input[type="color"] {
+    position:absolute; inset:0; width:100%; height:100%;
+    opacity:0; cursor:pointer; border:none; padding:0;
+  }
 
   /* Editor "stage" — decorated the same way as the slide preview/export (floating orbs + gradient) */
   .editor-panel { position:relative; overflow:hidden; }
@@ -1047,8 +1061,19 @@
         <div class="editor-panel">
           <div class="page-toolbar-wrap">
             <div class="toolbar">
+              <button type="button" onclick="changeFontSize(-1)" title="ลดขนาดตัวอักษร">−</button>
+              <span class="toolbar-fontsize" id="fontSizeValue" title="ขนาดตัวอักษรปัจจุบัน (px)">15</span>
+              <button type="button" onclick="changeFontSize(1)" title="เพิ่มขนาดตัวอักษร">+</button>
+              <span class="toolbar-sep"></span>
+              <label class="toolbar-color-btn" title="สีตัวอักษร">
+                A
+                <input type="color" id="textColorInput" value="#0B1B3D" oninput="this.closest('.toolbar-color-btn').style.setProperty('--toolbar-text-color', this.value); execCmd('foreColor', this.value)">
+              </label>
               <button type="button" onclick="execCmd('bold')" title="ตัวหนา"><b>B</b></button>
               <button type="button" onclick="execCmd('italic')" title="ตัวเอียง"><i>I</i></button>
+              <button type="button" onclick="execCmd('underline')" title="ขีดเส้นใต้"><u>U</u></button>
+              <button type="button" onclick="execCmd('strikeThrough')" title="ขีดฆ่า"><s>S</s></button>
+              <button type="button" onclick="cycleTextCase()" title="สลับตัวพิมพ์ใหญ่/เล็ก (ต้องเลือกข้อความก่อน)">aA</button>
               <span class="toolbar-sep"></span>
               <button type="button" onclick="execCmd('formatBlock','H2')" title="หัวข้อ">H2</button>
               <button type="button" onclick="execCmd('formatBlock','P')" title="ข้อความปกติ">P</button>
@@ -1059,6 +1084,11 @@
               <button type="button" onclick="alignContent('left')" title="ชิดซ้าย"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
               <button type="button" onclick="alignContent('center')" title="กึ่งกลาง"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M8 12h8M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
               <button type="button" onclick="alignContent('right')" title="ชิดขวา"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M10 12h10M6 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+              <button type="button" onclick="alignContent('justify')" title="จัดเรียงเต็มบรรทัด (justify)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+              <span class="toolbar-sep"></span>
+              <button type="button" onclick="cycleLineHeight()" title="ปรับระยะห่างบรรทัด (กดวนได้)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M8 4v16m0-16-3 3m3-3 3 3m0 10-3 3m3-3 3 3M13 7h7M13 12h7M13 17h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
               <span class="toolbar-sep"></span>
               <button type="button" onclick="setImageFullWidth()" title="ขยายรูปให้เต็มความกว้างสไลด์ (ต้องคลิกเลือกรูปก่อน)">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 12h4M17 12h4M8 7l-5 5 5 5M16 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2057,6 +2087,81 @@ function execCmd(cmd, value) {
   saveActivePageContent();
 }
 
+/* ปุ่มปรับขนาดตัวอักษร (−/ตัวเลข/+): execCommand('fontSize') รุ่นเก่ารองรับแค่ 7 ระดับ (1-7) เป็น
+   <font size="7">, เลยใช้ระดับ 7 เป็นตัวช่วยหา element ที่เพิ่งถูกครอบ แล้วเปลี่ยนเป็น
+   style="font-size:Npx" ตามค่าจริงที่ต้องการแทน — ได้ขนาดพิกเซลตรงตามตัวเลขที่กดเป๊ะ */
+let currentFontSize = 15;
+function applyFontSize(px) {
+  const editor = document.getElementById('editor');
+  editor.focus();
+  document.execCommand('fontSize', false, '7');
+  editor.querySelectorAll('font[size="7"]').forEach(function (el) {
+    el.removeAttribute('size');
+    el.style.fontSize = px + 'px';
+  });
+  saveActivePageContent();
+}
+function changeFontSize(delta) {
+  currentFontSize = Math.max(8, Math.min(96, currentFontSize + delta));
+  const el = document.getElementById('fontSizeValue');
+  if (el) el.textContent = currentFontSize;
+  applyFontSize(currentFontSize);
+}
+// อัปเดตตัวเลขในทูลบาร์ให้ตรงกับขนาดตัวอักษรจริงของข้อความตรงเคอร์เซอร์/ที่เลือกอยู่
+function syncFontSizeDisplay() {
+  const editor = document.getElementById('editor');
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || !editor.contains(sel.anchorNode)) return;
+  let node = sel.anchorNode;
+  if (node.nodeType === 3) node = node.parentElement;
+  if (!node) return;
+  const size = Math.round(parseFloat(getComputedStyle(node).fontSize));
+  if (!isNaN(size)) {
+    currentFontSize = size;
+    const el = document.getElementById('fontSizeValue');
+    if (el) el.textContent = size;
+  }
+}
+document.addEventListener('selectionchange', syncFontSizeDisplay);
+
+/* ปุ่ม "aA" สลับตัวพิมพ์ใหญ่/เล็กของข้อความที่เลือก วนแบบ UPPERCASE -> lowercase -> Capitalize Words
+   (ใช้ได้ผลชัดกับข้อความอังกฤษที่ปนอยู่ในคู่มือ ภาษาไทยไม่มีตัวพิมพ์ใหญ่/เล็กจึงไม่มีผล) */
+function cycleTextCase() {
+  const editor = document.getElementById('editor');
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || sel.isCollapsed || !editor.contains(sel.anchorNode)) return;
+  const text = sel.toString();
+  if (!text) return;
+  let newText;
+  if (text === text.toUpperCase() && text !== text.toLowerCase()) {
+    newText = text.toLowerCase();
+  } else if (text === text.toLowerCase() && text !== text.toUpperCase()) {
+    newText = text.replace(/\w\S*/g, function (t) { return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); });
+  } else {
+    newText = text.toUpperCase();
+  }
+  document.execCommand('insertText', false, newText);
+  saveActivePageContent();
+}
+
+/* ปุ่มปรับระยะห่างบรรทัด กดวนไปตามค่ามาตรฐาน 1.4 -> 1.6 -> 1.85 -> 2.2 -> 2.6 แล้ววนกลับ
+   ใช้กับ block ที่เคอร์เซอร์อยู่ (ย่อหน้า/บูลเลต/หัวข้อ) ถ้าหาไม่เจอจะปรับทั้งหน้าแทน */
+const LINE_HEIGHT_STEPS = [1.4, 1.6, 1.85, 2.2, 2.6];
+function cycleLineHeight() {
+  const editor = document.getElementById('editor');
+  const sel = window.getSelection();
+  let node = (sel && sel.rangeCount && editor.contains(sel.anchorNode)) ? sel.anchorNode : null;
+  if (node && node.nodeType === 3) node = node.parentElement;
+  const block = (node && node.closest && node.closest('p, li, h2, .img-align')) || editor;
+  const computedLH = parseFloat(getComputedStyle(block).lineHeight);
+  const computedFS = parseFloat(getComputedStyle(block).fontSize);
+  const currentRatio = (computedLH && computedFS) ? (computedLH / computedFS) : 1.85;
+  let idx = LINE_HEIGHT_STEPS.findIndex(function (v) { return Math.abs(v - currentRatio) < 0.08; });
+  const next = LINE_HEIGHT_STEPS[(idx + 1 + LINE_HEIGHT_STEPS.length) % LINE_HEIGHT_STEPS.length];
+  block.style.lineHeight = String(next);
+  saveActivePageContent();
+}
+
 /* Alignment: images are inserted as a display:inline-block "img-wrap" span (so they can be
    resized/dragged), which the browser's native justifyLeft/Center/Right command often can't
    reliably center. Clicking a selected image and hitting align now wraps it in its own
@@ -2125,7 +2230,7 @@ function alignContent(align) {
     saveActivePageContent();
     return;
   }
-  const cmdMap = { left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight' };
+  const cmdMap = { left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' };
   execCmd(cmdMap[align]);
 }
 
