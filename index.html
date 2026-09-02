@@ -1447,7 +1447,7 @@ function pushManualToCloud() {
   const payload = {
     name: name,
     pages: manualPages,
-    coverStyle: coverStyle,
+    coverStyle: coverStyle || null,
     updatedAt: now,
     createdAt: (existing && existing.createdAt) || now,
   };
@@ -1521,7 +1521,7 @@ function syncLibraryFromCloud() {
     const cloudM = cloudManualsIndex[m.id];
     if (fbAvailable && fbDb && (!cloudM || new Date(m.updatedAt) > new Date(cloudM.updatedAt))) {
       fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(m.id).set({
-        name: m.name, pages: m.pages, coverStyle: m.coverStyle,
+        name: m.name, pages: m.pages, coverStyle: m.coverStyle || null,
         updatedAt: m.updatedAt, createdAt: m.createdAt || m.updatedAt,
       }).catch(function (err) { console.warn('upload local manual to cloud failed:', err); });
     }
