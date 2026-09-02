@@ -953,7 +953,7 @@
 
       <div class="manual-toolbar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="manual-toolbar-icon"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 2v5h5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        <input type="text" id="manualNameInput" class="manual-name-input" placeholder="ตั้งชื่อคู่มือ เช่น คู่มือการใช้งานระบบ Easy CRM">
+        <input type="text" id="manualNameInput" class="manual-name-input" placeholder="ตั้งชื่อคู่มือ เช่น คู่มือการใช้งานระบบ Easy CRM" oninput="scheduleAutoSave()">
         <span class="manual-save-status" id="manualSaveStatus">ยังไม่ได้บันทึก</span>
         <div class="manual-toolbar-actions">
           <button type="button" class="btn-pill btn-pill-outline" onclick="openManualLibrary()">
@@ -1117,7 +1117,7 @@
             </button>
             <input type="text" id="pageTitleInput" class="page-title-input" placeholder="ชื่อหน้า" oninput="updateActiveTitle(this.value)">
             <div class="page-card-body">
-              <div id="editor" class="editor" contenteditable="true" oninput="saveActivePageContent()"></div>
+              <div id="editor" class="editor" contenteditable="true" oninput="saveActivePageContent(); scheduleAutoSave();"></div>
             </div>
             <div class="page-card-footer">Easy CRM · คู่มือการใช้งาน</div>
           </div>
@@ -1627,6 +1627,19 @@ let activePageId = 1;
 let nextPageId = 9;
 let savedRange = null;
 let currentManualId = null;
+let autoSaveTimer = null;
+
+/* บันทึกอัตโนมัติ: เรียกทุกครั้งที่ผู้ใช้พิมพ์แก้ไข (เนื้อหา/ชื่อหน้า/ชื่อคู่มือ)
+   รอให้หยุดพิมพ์ประมาณ 1.5 วิ ก่อนค่อยบันทึกจริง (กันยิงบันทึกถี่เกินไปทุกตัวอักษร)
+   ผู้ใช้ไม่ต้องกดปุ่ม Save เองอีกต่อไป — พิมพ์แล้วขึ้นคลาวด์ให้เองเหมือน Google Docs */
+function scheduleAutoSave() {
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  if (fbAvailable) setCloudStatus('syncing', 'กำลังแก้ไข...');
+  autoSaveTimer = setTimeout(function () {
+    autoSaveTimer = null;
+    saveCurrentManual();
+  }, 1500);
+}
 
 /* ---------- Cover page style (color theme + layout + optional custom background) ---------- */
 const COVER_THEMES = {
@@ -2110,6 +2123,7 @@ function reorderPages(sourceId, targetId, before) {
   regenerateTocPage();
   renderPageList();
   updatePageNumBadge();
+  scheduleAutoSave();
 }
 
 function updatePageNumBadge() {
@@ -2142,6 +2156,7 @@ function addPage() {
   manualPages.push(page);
   selectPage(page.id);
   regenerateTocPage();
+  scheduleAutoSave();
 }
 
 function deletePage(id) {
@@ -2163,6 +2178,7 @@ function deletePage(id) {
   }
   renderPageList();
   updatePageNumBadge();
+  scheduleAutoSave();
 }
 
 function updateActiveTitle(value) {
@@ -2171,6 +2187,7 @@ function updateActiveTitle(value) {
     page.title = value;
     renderPageList();
     regenerateTocPage();
+    scheduleAutoSave();
   }
 }
 
@@ -2178,6 +2195,7 @@ function saveActivePageContent() {
   const page = findPage(activePageId);
   if (page) {
     const editorEl = document.getElementById('editor');
+    const prevHtml = page.html;
     // Chrome often leaves a lone <br> behind after the user deletes all content,
     // which defeats the CSS :empty selector (e.g. the cover page's placeholder
     // fallback). Normalize a visually-empty editor to a truly empty node so
@@ -2194,6 +2212,9 @@ function saveActivePageContent() {
     } else {
       page.html = editorEl.innerHTML;
     }
+    // เนื้อหาเปลี่ยนจริง (พิมพ์/แทรกรูป/ลบรูป/เปลี่ยนสไตล์ ฯลฯ) -> ตั้งเวลาบันทึกอัตโนมัติ
+    // เทียบ html เดิม-ใหม่กันไว้ กันไม่ให้ขึ้นสถานะ "กำลังแก้ไข..." ตอนแค่สลับหน้าไปมาเฉยๆ
+    if (page.html !== prevHtml) scheduleAutoSave();
   }
 }
 
