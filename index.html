@@ -1451,6 +1451,14 @@ function pushManualToCloud() {
     updatedAt: now,
     createdAt: (existing && existing.createdAt) || now,
   };
+  // Firestore จำกัดขนาดเอกสารไว้ที่ 1MB/เอกสาร — คู่มือที่มีรูปแคปหน้าจอเยอะๆ เสี่ยงชนขีดนี้
+  // เช็คขนาดก่อนส่งจริง จะได้บอกสาเหตุตรงๆ แทนที่จะให้ผู้ใช้เห็นแค่ "บันทึกไม่สำเร็จ" เฉยๆ แล้วงงว่าทำไม
+  let payloadBytes = 0;
+  try { payloadBytes = new Blob([JSON.stringify(payload)]).size; } catch (e) { /* ignore */ }
+  if (payloadBytes > 950000) {
+    setCloudStatus('error', 'คู่มือเล่มนี้มีรูปเยอะจนไฟล์ใหญ่เกินจะบันทึกขึ้นคลาวด์ได้ (เกิน ~1MB) ลองลบรูปที่ไม่จำเป็นออกบางส่วน หรือแยกเนื้อหาเป็นหลายเล่ม');
+    return Promise.resolve();
+  }
   return fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(currentManualId).set(payload)
     .then(function () {
       cloudLastKnownUpdatedAt = now;
@@ -1460,7 +1468,12 @@ function pushManualToCloud() {
     })
     .catch(function (err) {
       console.warn('push to cloud failed:', err);
-      setCloudStatus('error', 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+      const msg = (err && err.message) || '';
+      if (/longer than|exceeds|maximum size|too large/i.test(msg)) {
+        setCloudStatus('error', 'คู่มือเล่มนี้ใหญ่เกินไป (รูปเยอะ) บันทึกขึ้นคลาวด์ไม่ได้ ลองลบ/ย่อรูปบางส่วน');
+      } else {
+        setCloudStatus('error', 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+      }
     });
 }
 
@@ -2466,28 +2479,63 @@ function insertImageWrap(src, w, h) {
   saveActivePageContent();
 }
 
-function handleImageUpload(event) {
-  const file = event.target.files && event.target.files[0];
+/* ย่อ/บีบอัดรูปก่อนฝังลงเนื้อหา — รูปแคปหน้าจอต้นฉบับมักหนักหลาย MB ถ้าฝังดิบๆ ทั้งไฟล์
+   จะทำให้เอกสารใหญ่เกินขีดจำกัดของ Firestore (1MB/เอกสาร) แล้วบันทึกขึ้นคลาวด์ไม่สำเร็จแบบเงียบๆ
+   ฟังก์ชันนี้ย่อความละเอียดจริงลงมา + แปลงเป็น JPEG คุณภาพสูงพอใช้ ลดขนาดไฟล์ลงหลายเท่าตัว
+   โดยที่ยังคมชัดพอสำหรับดูในคู่มือ/สไลด์ */
+function compressImageDataUrl(dataUrl, maxWidth, quality) {
+  return new Promise(function (resolve) {
+    const img = new Image();
+    img.onload = function () {
+      let w = img.naturalWidth || maxWidth;
+      let h = img.naturalHeight || Math.round(maxWidth * 0.7);
+      if (w > maxWidth) {
+        h = Math.round(h * (maxWidth / w));
+        w = maxWidth;
+      }
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF'; // กันพื้นหลังโปร่งใส (เช่น PNG) กลายเป็นดำตอนแปลงเป็น JPEG
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality || 0.75), naturalW: w, naturalH: h });
+      } catch (err) {
+        resolve({ dataUrl: dataUrl, naturalW: w, naturalH: h }); // แปลงไม่สำเร็จ (เช่น canvas ถูกบล็อก) -> ใช้ไฟล์เดิม
+      }
+    };
+    img.onerror = function () { resolve({ dataUrl: dataUrl, naturalW: maxWidth, naturalH: Math.round(maxWidth * 0.7) }); };
+    img.src = dataUrl;
+  });
+}
+
+/* ใช้ร่วมกันทั้งตอนกด "แทรกรูป" และตอนวาง (Ctrl+V) รูปจากคลิปบอร์ด:
+   อ่านไฟล์ -> ย่อ/บีบอัด -> แทรกลงหน้าเอกสาร พร้อมคำนวณขนาดที่แสดงผล (ไม่เกี่ยวกับขนาดไฟล์จริงที่บีบอัดแล้ว) */
+function readAndInsertImageFile(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function (e) {
-    const probe = new Image();
-    probe.onload = function () {
-      const maxW = 420;
-      let w = probe.naturalWidth || maxW;
-      let h = probe.naturalHeight || Math.round(maxW * 0.7);
-      if (w > maxW) {
-        h = Math.round(h * (maxW / w));
-        w = maxW;
+    compressImageDataUrl(e.target.result, 1000, 0.75).then(function (res) {
+      const maxDispW = 420; // ความกว้างที่แสดงผลเริ่มต้นในหน้าคู่มือ
+      let dispW = res.naturalW || maxDispW;
+      let dispH = res.naturalH || Math.round(maxDispW * 0.7);
+      if (dispW > maxDispW) {
+        dispH = Math.round(dispH * (maxDispW / dispW));
+        dispW = maxDispW;
       }
-      insertImageWrap(e.target.result, w, h);
-    };
-    probe.onerror = function () {
-      insertImageWrap(e.target.result, 320, 220);
-    };
-    probe.src = e.target.result;
+      insertImageWrap(res.dataUrl, dispW, dispH);
+    });
   };
   reader.readAsDataURL(file);
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  readAndInsertImageFile(file);
+  event.target.value = ''; // เคลียร์ค่า input กันเลือกไฟล์เดิมซ้ำแล้วไม่ทำงาน (change event ไม่ยิงถ้าค่าเดิม)
 }
 
 /* ---------- Import content from a Word (.docx) file ----------
@@ -2654,6 +2702,20 @@ function initImageDragMove() {
       e.preventDefault();
       deleteSelectedImage();
     }
+  });
+
+  // วางรูป (Ctrl+V) จากคลิปบอร์ดโดยตรง — เดิมไม่มีการจัดการส่วนนี้เลย ปล่อยให้เบราว์เซอร์แทรกรูป
+  // ดิบๆ เต็มขนาดเอง ทำให้เอกสารบวมจนบันทึกขึ้นคลาวด์ไม่ผ่าน ตอนนี้ดักไว้ ย่อ/บีบอัดเหมือนปุ่ม "แทรกรูป"
+  editor.addEventListener('paste', function (e) {
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    let imageItem = null;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf('image/') === 0) { imageItem = items[i]; break; }
+    }
+    if (!imageItem) return; // ไม่ใช่รูป -> ปล่อยให้วางข้อความตามปกติ
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    readAndInsertImageFile(file);
   });
 }
 
