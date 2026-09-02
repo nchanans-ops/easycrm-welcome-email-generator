@@ -1619,6 +1619,10 @@ let manualPages = [
     '<li><strong>เครื่องมือ Dev (Sandbox)</strong> — [อธิบายเครื่องมือสำหรับนักพัฒนา/ทดสอบระบบ]</li>' +
     '</ul>', hint: 'อธิบายฟีเจอร์ในเมนูการเชื่อมต่อระบบ' }
 ];
+/* เก็บสำเนาต้นแบบเทมเพลตทั้ง 8 หน้านี้ไว้ตั้งแต่ตอนโหลดหน้าเว็บ (ก่อนผู้ใช้แก้ไขอะไร)
+   เพื่อใช้เป็นจุดเริ่มต้นทุกครั้งที่กด "สร้างคู่มือใหม่" — จะได้เทมเพลตเดียวกับเล่มแรกเป๊ะๆ
+   (มีสารบัญที่ลิงก์ไปแต่ละหัวข้อพร้อมใช้ ผู้ใช้แค่แก้เนื้อหาในหัวข้อที่มีอยู่แล้วเอา) */
+const DEFAULT_NEW_MANUAL_PAGES = JSON.parse(JSON.stringify(manualPages));
 let activePageId = 1;
 let nextPageId = 9;
 let savedRange = null;
@@ -1767,11 +1771,6 @@ function removeCoverBgImage() {
   renderCoverStyleModal();
   saveActivePageContent();
 }
-
-const DEFAULT_NEW_MANUAL_PAGES = [
-  { id: 1, title: 'หน้าปก', html: '', hint: 'หน้าปกเป็นหน้าเปล่า แทรกรูปภาพหน้าปกสำเร็จรูปได้เลยจากปุ่ม "แทรกรูป" แล้วลากมุมเพื่อปรับขนาด หรือลากรูปเพื่อย้ายตำแหน่งได้' },
-  { id: 2, title: 'หน้าที่ 2', html: '', hint: DEFAULT_HINT }
-];
 
 const MANUALS_STORAGE_KEY = 'ecrm_manuals_v1';
 
