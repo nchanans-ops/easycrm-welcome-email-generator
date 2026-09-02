@@ -171,7 +171,7 @@
     line-height:1.6;
   }
 
-  .wrap { max-width:1200px; margin:0 auto; padding:28px 20px 64px; }
+  .wrap { max-width:1600px; margin:0 auto; padding:28px 20px 64px; }
   h1 { font-size:22px; margin:0 0 22px 0; font-weight:800; letter-spacing:-0.2px; }
 
   .grid {
@@ -594,7 +594,7 @@
     padding:28px 18px 36px;
     border:1px solid #E2E7F0;
   }
-  .page-toolbar-wrap { width:100%; max-width:800px; margin-bottom:16px; }
+  .page-toolbar-wrap { width:100%; max-width:1200px; margin-bottom:16px; }
   .toolbar {
     display:flex;
     align-items:center;
@@ -641,7 +641,7 @@
   /* The "page" itself — same visual language as the slide preview/export: eyebrow badge + accent title + white card */
   .page-card {
     width:100%;
-    max-width:800px;
+    max-width:1200px;
     aspect-ratio:16 / 9;
     display:flex;
     flex-direction:column;
@@ -1024,6 +1024,14 @@
 
           <div style="height:1px;background:#F0F2F6;margin:18px 0;"></div>
 
+          <button class="btn btn-secondary" onclick="makeAllImagesFullWidth()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12h4M17 12h4M8 7l-5 5 5 5M16 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ขยายรูปทุกรูปในทุกหน้าให้เต็มความกว้าง
+          </button>
+          <p class="hint" style="margin-top:6px;">ใช้ครั้งเดียวแก้รูปทั้งเล่ม ไม่ต้องไล่กดทีละรูป (บันทึกให้อัตโนมัติ)</p>
+
+          <div style="height:1px;background:#F0F2F6;margin:18px 0;"></div>
+
           <button class="btn btn-secondary" onclick="previewSlides()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 9l4 3-4 3V9Z" fill="currentColor"/></svg>
             ดูตัวอย่างสไลด์ (แนวนอน)
@@ -1051,6 +1059,15 @@
               <button type="button" onclick="alignContent('left')" title="ชิดซ้าย"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
               <button type="button" onclick="alignContent('center')" title="กึ่งกลาง"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M8 12h8M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
               <button type="button" onclick="alignContent('right')" title="ชิดขวา"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M10 12h10M6 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+              <span class="toolbar-sep"></span>
+              <button type="button" onclick="setImageFullWidth()" title="ขยายรูปให้เต็มความกว้างสไลด์ (ต้องคลิกเลือกรูปก่อน)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 12h4M17 12h4M8 7l-5 5 5 5M16 7l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                เต็มความกว้าง
+              </button>
+              <button type="button" onclick="deleteSelectedImage()" title="ลบรูปที่เลือก (คลิกรูปให้ขึ้นกรอบฟ้าก่อน แล้วกดปุ่มนี้ หรือกด Delete/Backspace)" style="color:#D0342C;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ลบรูป
+              </button>
               <span class="toolbar-sep"></span>
               <button type="button" onclick="triggerImageUpload()" title="แทรกรูปภาพ">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:-2px;"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="10" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-4 4 3 3-2 4 3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
@@ -2112,6 +2129,77 @@ function alignContent(align) {
   execCmd(cmdMap[align]);
 }
 
+/* ขยายรูปให้กว้างเต็มพื้นที่เนื้อหา (เต็มสไลด์/เต็มหน้า e-book) โดยรักษาสัดส่วนเดิมไว้
+   (width:100% + height:auto แทนที่จะล็อกเป็น px ตายตัว จึงเต็มความกว้างของ .slide-body/หน้า e-book
+   จริง ไม่ว่าตอนแสดงในตัวแก้ไขหรือตอน export). ใช้ได้ทั้งกับ .img-wrap ที่อยู่ใน DOM จริง (คลิกเลือกทีละรูป)
+   และ .img-wrap ที่อยู่ใน div ชั่วคราวนอก DOM (ใช้ตอนไล่แก้ทุกรูปในทุกหน้าแบบ bulk) */
+function applyFullWidthToWrap(wrap, editorScope) {
+  const img = wrap.querySelector('img');
+  wrap.style.display = '';
+  wrap.style.margin = '';
+  let container = wrap.closest('.img-align');
+  if (!container || (editorScope && !editorScope.contains(container))) {
+    container = document.createElement('div');
+    container.className = 'img-align';
+    wrap.parentNode.insertBefore(container, wrap);
+    container.appendChild(wrap);
+  }
+  container.style.textAlign = 'center';
+  wrap.style.width = '100%';
+  wrap.style.height = '';
+  if (img) {
+    img.style.width = '100%';
+    img.style.height = 'auto';
+  }
+}
+
+function setImageFullWidth() {
+  const editor = document.getElementById('editor');
+  if (!selectedImgWrap || !editor.contains(selectedImgWrap)) return;
+  applyFullWidthToWrap(selectedImgWrap, editor);
+  saveActivePageContent();
+}
+
+/* ลบรูปที่เลือกอยู่ (กรอบฟ้า) ออกจากหน้า — รูปถูกแทรกแบบ contenteditable="false" จึงเป็น "เกาะ"
+   ที่ปุ่ม Backspace/Delete ปกติของเบราว์เซอร์ไม่ลบให้ (ต้องสั่งลบออกจาก DOM เอง) ถ้ารูปนั้นเป็นรูปเดียว
+   ที่อยู่ใน .img-align wrapper (จากปุ่มจัดตำแหน่ง/เต็มความกว้าง) จะลบ wrapper ที่ว่างเปล่านั้นทิ้งไปด้วย */
+function deleteSelectedImage() {
+  const editor = document.getElementById('editor');
+  if (!selectedImgWrap || !editor.contains(selectedImgWrap)) return;
+  const container = selectedImgWrap.closest('.img-align');
+  selectedImgWrap.remove();
+  if (container && editor.contains(container) && !container.querySelector('.img-wrap') && !container.textContent.trim()) {
+    container.remove();
+  }
+  selectedImgWrap = null;
+  saveActivePageContent();
+}
+
+/* ขยาย "ทุกรูปในทุกหน้า" ให้เต็มความกว้างในคราวเดียว ไม่ต้องไล่คลิกทีละรูป —
+   ทำงานผ่าน div ชั่วคราวนอกตัวแก้ไข ไล่ทุกหน้าใน manualPages แล้วเขียนทับ p.html
+   จากนั้นรีเฟรชหน้าที่กำลังเปิดอยู่ในตัวแก้ไข และบันทึกให้อัตโนมัติ (ทั้ง local และ cloud) */
+function makeAllImagesFullWidth() {
+  migrateManualPages(manualPages);
+  let total = 0;
+  manualPages.forEach(function (p) {
+    if (!p || !p.html || p.html.indexOf('img-wrap') === -1) return;
+    const temp = document.createElement('div');
+    temp.innerHTML = p.html;
+    temp.querySelectorAll('.img-wrap').forEach(function (wrap) {
+      applyFullWidthToWrap(wrap, null);
+      total++;
+    });
+    p.html = temp.innerHTML;
+  });
+  renderActivePageIntoEditor();
+  saveCurrentManual();
+  const statusEl = document.getElementById('manualStatus');
+  if (statusEl) {
+    statusEl.style.color = '#1a8a4a';
+    statusEl.textContent = '✓ ขยายรูปเต็มความกว้างแล้ว ' + total + ' รูป ทุกหน้า และบันทึกอัตโนมัติแล้ว';
+  }
+}
+
 function triggerImageUpload() {
   const editor = document.getElementById('editor');
   editor.focus();
@@ -2316,6 +2404,14 @@ function initImageDragMove() {
   editor.addEventListener('click', function (e) {
     const wrap = e.target.closest && e.target.closest('.img-wrap');
     selectImgWrap(wrap || null);
+  });
+  // รูปเป็น contenteditable="false" ปุ่ม Backspace/Delete ปกติของเบราว์เซอร์เลยลบให้ไม่ได้ —
+  // ถ้ามีรูปที่เลือกอยู่ (กรอบฟ้า) ตอนนี้ ให้กด Delete/Backspace ลบรูปนั้นได้เลย
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedImgWrap && editor.contains(selectedImgWrap)) {
+      e.preventDefault();
+      deleteSelectedImage();
+    }
   });
 }
 
@@ -2623,7 +2719,7 @@ body{
 .deck::-webkit-scrollbar{display:none;}
 .track{display:flex;flex-wrap:nowrap;height:100vh;}
 .slide{flex:0 0 100vw;height:100vh;scroll-snap-align:center;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;padding:92px 40px 36px;position:relative;}
-.slide-inner{max-width:1120px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(40px);transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);}
+.slide-inner{max-width:1600px;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(40px);transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);}
 .slide[data-active="true"] .slide-inner{opacity:1;transform:translateX(0);}
 
 /* Fixed-ratio presentation canvas — same 16:9 "slide" proportions as the editor, so exported
@@ -2647,10 +2743,10 @@ body{
 .slide-header{flex:none;margin-bottom:14px;}
 .slide-eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--blue-600);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:6px 14px;background:#fff;border:1px solid var(--blue-100);border-radius:999px;box-shadow:var(--shadow-sm);margin-bottom:14px;}
 .slide-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--blue-500);box-shadow:0 0 0 4px rgba(43,124,246,.16);}
-.slide-title{font-size:clamp(20px,2.6vw,32px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--ink-900);padding-left:14px;border-left:5px solid var(--blue-500);}
+.slide-title{font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--ink-900);padding-left:14px;border-left:5px solid var(--blue-500);}
 
-.slide-body{flex:1;min-height:0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px 34px;box-shadow:0 16px 34px -16px rgba(11,27,61,.18);font-size:15px;line-height:1.85;color:var(--ink-700);overflow-y:auto;text-align:left;}
-.slide-body h2{font-size:18px;font-weight:800;margin:16px 0 8px 0;color:var(--ink-900);padding-left:12px;border-left:4px solid var(--blue-500);}
+.slide-body{flex:1;min-height:0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:30px 38px;box-shadow:0 16px 34px -16px rgba(11,27,61,.18);font-size:17px;line-height:1.85;color:var(--ink-700);overflow-y:auto;text-align:left;}
+.slide-body h2{font-size:21px;font-weight:800;margin:16px 0 8px 0;color:var(--ink-900);padding-left:12px;border-left:4px solid var(--blue-500);}
 .slide-body h2:first-child{margin-top:0;}
 .slide-body p{margin:0 0 12px 0;}
 .slide-body ul,.slide-body ol{margin:0 0 12px 0;padding-left:22px;}
@@ -2789,36 +2885,15 @@ document.addEventListener('keydown', function(e){
   else if(e.key === 'End'){ e.preventDefault(); goTo(TOTAL-1); }
 });
 
-var wheelTO, wheelLock = false;
+/* ตัดการเปลี่ยนสไลด์อัตโนมัติจาก mouse wheel และ swipe ออกทั้งหมดแล้ว —
+   เปลี่ยนสไลด์ได้เฉพาะตอนกดปุ่ม ลูกศร คีย์บอร์ด หรือจุด dots เท่านั้น
+   ถ้าเมาส์/นิ้วอยู่เหนือกล่องเนื้อหาที่ยาวเกินจอ ยังเลื่อนดูเนื้อหาในกล่องนั้นได้ตามปกติ
+   แต่จะไม่กระโดดเปลี่ยนสไลด์ให้เองอีกต่อไป แม้เลื่อนสุดขอบแล้วก็ตาม */
 deck.addEventListener('wheel', function(e){
-  if(wheelLock) return;
-  var dir = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-  if(Math.abs(dir) < 20) return;
-
-  /* ถ้าเมาส์อยู่เหนือกล่องเนื้อหาที่ยาวเกินจอและยังเลื่อนได้อีก ให้เลื่อนเนื้อหาในกล่องนั้นก่อน
-     อย่าเพิ่งกระโดดเปลี่ยนสไลด์ — เปลี่ยนสไลด์เฉพาะตอนเลื่อนเนื้อหาสุดขอบแล้วเท่านั้น */
   var scrollable = e.target.closest && e.target.closest('.slide-body, .cover-hero');
-  if (scrollable && scrollable.scrollHeight > scrollable.clientHeight + 1) {
-    var atTop = scrollable.scrollTop <= 0;
-    var atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
-    if ((dir < 0 && !atTop) || (dir > 0 && !atBottom)) return;
-  }
-
+  if (scrollable && scrollable.scrollHeight > scrollable.clientHeight + 1) return;
   e.preventDefault();
-  wheelLock = true;
-  if(dir > 0) goTo(currentIndex+1); else goTo(currentIndex-1);
-  clearTimeout(wheelTO);
-  wheelTO = setTimeout(function(){ wheelLock = false; }, SLIDE_SCROLL_MS + 150);
 }, {passive:false});
-
-var touchX = 0;
-deck.addEventListener('touchstart', function(e){ touchX = e.touches[0].clientX; });
-deck.addEventListener('touchend', function(e){
-  var dx = e.changedTouches[0].clientX - touchX;
-  if(Math.abs(dx) > 60){
-    if(dx < 0) goTo(currentIndex+1); else goTo(currentIndex-1);
-  }
-});
 
 window.addEventListener('resize', function(){
   deck.scrollLeft = currentIndex * window.innerWidth;
