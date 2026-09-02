@@ -1314,7 +1314,10 @@ function downloadEmail() {
 
 const DEFAULT_HINT = 'เริ่มพิมพ์เนื้อหาที่นี่... (แทรกรูปได้จากปุ่ม "แทรกรูป")';
 
-/* ---------- Cloud sync (Firebase Firestore): ทุกคนที่เปิดไฟล์นี้แก้ไข "คู่มือกลาง" ร่วมกันได้ ---------- */
+/* ---------- Cloud sync (Firebase Firestore) ----------
+   แต่ละคู่มือมีเอกสารคลาวด์ของตัวเอง (คอลเลกชัน CLOUD_MANUALS_COLLECTION, doc id = manualId)
+   เปิดไฟล์นี้จากเครื่องไหนก็เห็น "รายชื่อคู่มือทั้งหมด" และเนื้อหาแต่ละเล่มตรงกัน
+   ของเก่า (เอกสารเดี่ยว easycrm_manual/main) ยังคงอยู่เฉย ๆ เป็นสำรอง ไม่ถูกลบหรือเขียนทับอีก */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDYN1OvsbGEYwoambLExHzsREJARrJNp9w",
   authDomain: "easycrm-manual.firebaseapp.com",
@@ -1324,12 +1327,17 @@ const FIREBASE_CONFIG = {
   appId: "1:157307911181:web:57629f01503a3e241a2944",
   measurementId: "G-WJTG1SQHB2"
 };
-const CLOUD_COLLECTION = 'easycrm_manual';
-const CLOUD_DOC_ID = 'main';
+const CLOUD_MANUALS_COLLECTION = 'easycrm_manuals'; // ใหม่: 1 เอกสาร = 1 คู่มือ
+const LEGACY_CLOUD_COLLECTION = 'easycrm_manual';    // ของเดิม เก็บไว้อ่านตอนย้ายข้อมูลครั้งเดียว ไม่เขียนทับอีก
+const LEGACY_CLOUD_DOC_ID = 'main';
+const LEGACY_MIGRATED_MANUAL_ID = 'legacy_main';     // id คงที่ กันย้ายข้อมูลซ้ำซ้อน
 
 let fbDb = null;
 let fbAvailable = false;
-let cloudLastKnownUpdatedAt = null; // ISO string ของเวอร์ชันคลาวด์ล่าสุดที่โหลด/บันทึกไว้แล้ว
+let cloudLastKnownUpdatedAt = null;  // ISO ของคู่มือที่เปิดอยู่ตอนนี้ เทียบไว้เช็คว่ามีคนอื่นบันทึกทับหรือยัง
+let currentManualUnsub = null;       // ยกเลิกการฟัง doc คู่มือเดิม ตอนสลับไปเปิดเล่มอื่น
+let cloudManualsIndex = {};          // แคชล่าสุดจากคลาวด์: { [id]: {id, name, pages, coverStyle, updatedAt, createdAt} }
+let libraryBootstrapped = false;     // เผื่อ auto-เปิดคู่มือล่าสุดให้ตอนเปิดแอปครั้งแรกในเครื่องนี้เท่านั้น
 
 try {
   if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
@@ -1360,7 +1368,7 @@ function hideCloudUpdateBanner() {
   if (el) el.classList.remove('active');
 }
 
-/* เติมข้อมูลจากคลาวด์ลงในตัวแก้ไข (ใช้ตอนโหลดครั้งแรก หรือเมื่อผู้ใช้กด "โหลดเวอร์ชันล่าสุด" เอง) */
+/* เติมข้อมูลจากคลาวด์ลงในตัวแก้ไข (ใช้ตอนเปิดคู่มือเล่มนี้ครั้งแรก หรือกด "โหลดเวอร์ชันล่าสุด") */
 function applyCloudData(data) {
   if (!data || !data.pages || !data.pages.length) return;
   manualPages = JSON.parse(JSON.stringify(data.pages));
@@ -1377,16 +1385,13 @@ function applyCloudData(data) {
   hideCloudUpdateBanner();
 }
 
-function handleCloudSnapshot(doc) {
+/* ฟังการเปลี่ยนแปลงของ "คู่มือที่กำลังเปิดอยู่" เล่มเดียว เพื่อเตือนถ้ามีคนอื่นบันทึกทับระหว่างที่เรากำลังแก้ */
+function handleCurrentManualSnapshot(doc) {
   if (doc.metadata && doc.metadata.hasPendingWrites) return; // การบันทึกของตัวเอง ไม่ต้องแจ้งเตือนซ้ำ
-  if (!doc.exists) {
-    setCloudStatus('offline', 'ยังไม่มีคู่มือในคลาวด์ — กด "Save" เพื่อเริ่มต้น');
-    return;
-  }
+  if (!doc.exists) return;
   const data = doc.data() || {};
   if (!data.updatedAt) return;
   if (cloudLastKnownUpdatedAt === null) {
-    // เปิดไฟล์ครั้งแรก ยังไม่มีการแก้ไขอะไรในเครื่องนี้ -> โหลดอัตโนมัติได้อย่างปลอดภัย
     applyCloudData(data);
     return;
   }
@@ -1394,7 +1399,6 @@ function handleCloudSnapshot(doc) {
     setCloudStatus('synced', 'บันทึกแล้ว');
     return;
   }
-  // มีคนอื่นบันทึกเวอร์ชันใหม่กว่าเข้ามาระหว่างที่กำลังแก้ไขอยู่ -> แจ้งเตือนแทนการเขียนทับทันที
   setCloudStatus('syncing', 'มีเวอร์ชันใหม่จากทีม');
   showCloudUpdateBanner();
 }
@@ -1404,43 +1408,50 @@ function handleCloudError(err) {
   setCloudStatus('error', 'เชื่อมต่อคลาวด์ไม่สำเร็จ');
 }
 
-function initCloudSync() {
-  if (!fbAvailable || !fbDb) {
-    setCloudStatus('offline', 'โหมดออฟไลน์ (ไม่ได้เชื่อมคลาวด์)');
-    return;
-  }
-  setCloudStatus('syncing', 'กำลังเชื่อมต่อคลาวด์...');
+/* เริ่ม/สลับการฟัง doc ของคู่มือเล่มที่กำลังเปิดอยู่ตอนนี้ (currentManualId) */
+function subscribeToCurrentManualDoc() {
+  if (currentManualUnsub) { currentManualUnsub(); currentManualUnsub = null; }
+  if (!fbAvailable || !fbDb || !currentManualId) return;
+  cloudLastKnownUpdatedAt = null; // เปิดเล่มนี้ใหม่ ยังไม่เคยเทียบเวอร์ชันคลาวด์ของเล่มนี้เลย
   try {
-    fbDb.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID)
-      .onSnapshot({ includeMetadataChanges: true }, handleCloudSnapshot, handleCloudError);
+    currentManualUnsub = fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(currentManualId)
+      .onSnapshot({ includeMetadataChanges: true }, handleCurrentManualSnapshot, handleCloudError);
   } catch (e) {
     handleCloudError(e);
   }
 }
 
 function loadLatestFromCloud() {
-  if (!fbAvailable || !fbDb) return;
+  if (!fbAvailable || !fbDb || !currentManualId) return;
   setCloudStatus('syncing', 'กำลังโหลด...');
-  fbDb.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID).get()
+  fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(currentManualId).get()
     .then(function (doc) {
       if (doc.exists) applyCloudData(doc.data());
     })
     .catch(handleCloudError);
 }
 
-/* บันทึกคู่มือปัจจุบันขึ้นคลาวด์กลาง ให้ทุกคนที่เปิดไฟล์นี้เห็นเวอร์ชันเดียวกัน */
+/* บันทึกคู่มือปัจจุบันขึ้นเอกสารคลาวด์ของ "เล่มนี้เล่มเดียว" — ไม่ทับเล่มอื่น */
 function pushManualToCloud() {
   if (!fbAvailable || !fbDb) {
     setCloudStatus('offline', 'ไม่ได้เชื่อมคลาวด์ (บันทึกไว้ในเครื่องนี้เท่านั้น)');
     return Promise.resolve();
   }
+  if (!currentManualId) return Promise.resolve(); // ยังไม่มี id (จะถูกสร้างใน saveCurrentManual ก่อนเรียกฟังก์ชันนี้เสมอ)
   saveActivePageContent();
   const nameInput = document.getElementById('manualNameInput');
   const name = (nameInput.value || '').trim() || 'คู่มือไม่มีชื่อ';
   const now = new Date().toISOString();
   setCloudStatus('syncing', 'กำลังบันทึก...');
-  const payload = { name: name, pages: manualPages, coverStyle: coverStyle, updatedAt: now };
-  return fbDb.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID).set(payload)
+  const existing = loadManualProjects().find(m => m.id === currentManualId);
+  const payload = {
+    name: name,
+    pages: manualPages,
+    coverStyle: coverStyle,
+    updatedAt: now,
+    createdAt: (existing && existing.createdAt) || now,
+  };
+  return fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(currentManualId).set(payload)
     .then(function () {
       cloudLastKnownUpdatedAt = now;
       updateManualSaveStatus(now);
@@ -1451,6 +1462,106 @@ function pushManualToCloud() {
       console.warn('push to cloud failed:', err);
       setCloudStatus('error', 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
     });
+}
+
+/* ลบเอกสารคลาวด์ของคู่มือเล่มนี้ (เรียกคู่กับการลบออกจากลิสต์ในเครื่อง) */
+function deleteManualFromCloud(id) {
+  if (!fbAvailable || !fbDb || !id) return Promise.resolve();
+  return fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(id).delete()
+    .catch(function (err) { console.warn('delete from cloud failed:', err); });
+}
+
+/* ย้ายข้อมูลจากระบบเก่า (เอกสารเดี่ยว easycrm_manual/main) เข้าคอลเลกชันใหม่ ครั้งเดียวแบบปลอดภัย
+   — ไม่ลบ/ไม่แก้ของเก่า, ทำซ้ำได้ไม่เพี้ยน (id คงที่ legacy_main, เช็คก่อนว่ามีแล้วหรือยัง) */
+function migrateLegacyCloudManualIfNeeded() {
+  if (!fbAvailable || !fbDb) return Promise.resolve();
+  const newDocRef = fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(LEGACY_MIGRATED_MANUAL_ID);
+  return newDocRef.get().then(function (newDoc) {
+    if (newDoc.exists) return; // ย้ายไปแล้วก่อนหน้านี้ ไม่ต้องทำซ้ำ
+    return fbDb.collection(LEGACY_CLOUD_COLLECTION).doc(LEGACY_CLOUD_DOC_ID).get().then(function (oldDoc) {
+      if (!oldDoc.exists) return;
+      const data = oldDoc.data() || {};
+      if (!data.pages || !data.pages.length) return;
+      return newDocRef.set({
+        name: data.name || 'คู่มือการใช้งานระบบ Easy CRM',
+        pages: data.pages,
+        coverStyle: data.coverStyle || null,
+        updatedAt: data.updatedAt || new Date().toISOString(),
+        createdAt: data.updatedAt || new Date().toISOString(),
+      });
+    });
+  }).catch(function (err) {
+    console.warn('migrate legacy cloud manual failed:', err);
+  });
+}
+
+/* รวมรายชื่อคู่มือจากคลาวด์เข้ากับรายชื่อในเครื่องนี้ โดยไม่ทำให้เล่มไหนหายไปเลย:
+   - เล่มที่คลาวด์มีแต่เครื่องนี้ไม่มี (หรือคลาวด์ใหม่กว่า) -> เก็บลง local ด้วย
+   - เล่มที่เครื่องนี้มีแต่คลาวด์ยังไม่มี (หรือเครื่องนี้ใหม่กว่า) -> ดันขึ้นคลาวด์ให้เครื่องอื่นเห็นด้วย */
+function syncLibraryFromCloud() {
+  const local = loadManualProjects();
+  const localById = {}; local.forEach(m => { localById[m.id] = m; });
+  let localChanged = false;
+
+  Object.keys(cloudManualsIndex).forEach(function (id) {
+    const cloudM = cloudManualsIndex[id];
+    const localM = localById[id];
+    if (!localM || new Date(cloudM.updatedAt) > new Date(localM.updatedAt)) {
+      localById[id] = { id: id, name: cloudM.name, pages: cloudM.pages, coverStyle: cloudM.coverStyle, createdAt: cloudM.createdAt || cloudM.updatedAt, updatedAt: cloudM.updatedAt };
+      localChanged = true;
+    }
+  });
+
+  if (localChanged) {
+    persistManualProjects(Object.keys(localById).map(id => localById[id]));
+  }
+
+  // เล่มที่มีในเครื่องนี้ แต่คลาวด์ยังไม่มี (เช่น สร้าง/แก้ตอนออฟไลน์ หรือแก้จากระบบเก่าก่อนอัปเดต) -> ดันขึ้นคลาวด์
+  local.forEach(function (m) {
+    const cloudM = cloudManualsIndex[m.id];
+    if (fbAvailable && fbDb && (!cloudM || new Date(m.updatedAt) > new Date(cloudM.updatedAt))) {
+      fbDb.collection(CLOUD_MANUALS_COLLECTION).doc(m.id).set({
+        name: m.name, pages: m.pages, coverStyle: m.coverStyle,
+        updatedAt: m.updatedAt, createdAt: m.createdAt || m.updatedAt,
+      }).catch(function (err) { console.warn('upload local manual to cloud failed:', err); });
+    }
+  });
+
+  if (document.getElementById('manualLibraryOverlay') && document.getElementById('manualLibraryOverlay').classList.contains('active')) {
+    renderManualLibraryList();
+  }
+
+  // เปิดแอปเครื่องนี้เป็นครั้งแรก ยังไม่ได้เลือก/พิมพ์อะไรเลย -> เปิดคู่มือที่อัปเดตล่าสุดให้อัตโนมัติ (เหมือนใช้งานต่อจากเครื่องอื่น)
+  if (!libraryBootstrapped) {
+    libraryBootstrapped = true;
+    if (!currentManualId) {
+      const merged = Object.keys(localById).map(id => localById[id]).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      if (merged.length) loadManualProject(merged[0].id, { skipConfirm: true });
+    }
+  }
+}
+
+function handleLibrarySnapshot(snapshot) {
+  const idx = {};
+  snapshot.forEach(function (doc) { idx[doc.id] = Object.assign({ id: doc.id }, doc.data()); });
+  cloudManualsIndex = idx;
+  syncLibraryFromCloud();
+}
+
+function initCloudSync() {
+  if (!fbAvailable || !fbDb) {
+    setCloudStatus('offline', 'โหมดออฟไลน์ (ไม่ได้เชื่อมคลาวด์)');
+    return;
+  }
+  setCloudStatus('syncing', 'กำลังเชื่อมต่อคลาวด์...');
+  migrateLegacyCloudManualIfNeeded().finally(function () {
+    try {
+      fbDb.collection(CLOUD_MANUALS_COLLECTION)
+        .onSnapshot({ includeMetadataChanges: false }, handleLibrarySnapshot, handleCloudError);
+    } catch (e) {
+      handleCloudError(e);
+    }
+  });
 }
 
 let manualPages = [
@@ -1769,6 +1880,7 @@ function saveCurrentManual() {
   } else {
     currentManualId = genManualId();
     list.push({ id: currentManualId, name: name, pages: manualPages, coverStyle: coverStyle, createdAt: now, updatedAt: now });
+    subscribeToCurrentManualDoc(); // เล่มใหม่เพิ่งได้ id เริ่มฟังคลาวด์ของเล่มนี้ทันที
   }
   persistManualProjects(list);
   updateManualSaveStatus(now);
@@ -1836,7 +1948,8 @@ function renderManualLibraryList() {
   });
 }
 
-function loadManualProject(id) {
+function loadManualProject(id, opts) {
+  opts = opts || {};
   const list = loadManualProjects();
   const m = list.find(x => x.id === id);
   if (!m || !m.pages || !m.pages.length) return;
@@ -1850,7 +1963,8 @@ function loadManualProject(id) {
   nextPageId = maxId + 1;
   activePageId = manualPages[0].id;
   renderActivePageIntoEditor();
-  closeManualLibrary();
+  if (!opts.skipConfirm) closeManualLibrary();
+  subscribeToCurrentManualDoc(); // ฟังคู่มือเล่มนี้บนคลาวด์ต่อ เผื่อมีเครื่องอื่นแก้ไขเล่มเดียวกันพร้อมกัน
 }
 
 function deleteManualProject(id) {
@@ -1858,8 +1972,10 @@ function deleteManualProject(id) {
   let list = loadManualProjects();
   list = list.filter(m => m.id !== id);
   persistManualProjects(list);
+  deleteManualFromCloud(id);
   if (id === currentManualId) {
     currentManualId = null;
+    if (currentManualUnsub) { currentManualUnsub(); currentManualUnsub = null; }
     updateManualSaveStatus(null);
   }
   renderManualLibraryList();
@@ -1869,6 +1985,7 @@ function createNewManual() {
   if (!confirm('เริ่มคู่มือใหม่? เนื้อหาที่ยังไม่ได้บันทึกในหน้าปัจจุบันจะหายไป')) return;
   manualPages = JSON.parse(JSON.stringify(DEFAULT_NEW_MANUAL_PAGES));
   currentManualId = null;
+  if (currentManualUnsub) { currentManualUnsub(); currentManualUnsub = null; }
   nextPageId = manualPages.length + 1;
   activePageId = manualPages[0].id;
   document.getElementById('manualNameInput').value = '';
