@@ -1343,6 +1343,12 @@ try {
   if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
   firebase.initializeApp(FIREBASE_CONFIG);
   fbDb = firebase.firestore();
+  /* บางเครือข่าย/บางส่วนขยายเบราว์เซอร์ (ตัวบล็อกโฆษณา, ไฟร์วอลล์บริษัท) บล็อกการเชื่อมต่อสตรีมมิ่งแบบ
+     WebChannel ที่ Firestore ใช้ทำ real-time listener (onSnapshot) โดยเฉพาะ — ทำให้เห็น error ซ้ำๆ ใน console ว่า
+     "WebChannelConnection RPC 'Listen' stream ... transport errored" วนไม่หยุด แม้ปุ่ม Save เดี่ยวๆ (get/set)
+     จะยังทำงานได้ปกติ เพราะไม่ได้ใช้สตรีมเดียวกัน ผลคือเครื่องนั้นจะไม่เห็นข้อมูลอัปเดตจากเครื่องอื่นเลย
+     สั่งให้ใช้ long-polling แทน WebSocket/streaming ตั้งแต่ต้น จะข้ามปัญหานี้ได้ในเครือข่ายส่วนใหญ่ */
+  try { fbDb.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { /* ignore ถ้าตั้งซ้ำ */ }
   fbAvailable = true;
 } catch (e) {
   fbAvailable = false;
@@ -1554,11 +1560,28 @@ function syncLibraryFromCloud() {
   }
 }
 
+let librarySnapshotReceived = false; // ตัวเช็คว่า real-time listener เคยส่งข้อมูลสำเร็จอย่างน้อย 1 ครั้งหรือยัง
+
 function handleLibrarySnapshot(snapshot) {
+  librarySnapshotReceived = true;
   const idx = {};
   snapshot.forEach(function (doc) { idx[doc.id] = Object.assign({ id: doc.id }, doc.data()); });
   cloudManualsIndex = idx;
   syncLibraryFromCloud();
+}
+
+/* ตาข่ายนิรภัย: ถ้า real-time listener (onSnapshot) เชื่อมต่อสตรีมไม่สำเร็จเลยภายใน 6 วิ
+   (เช่นเครือข่ายบล็อก WebChannel) ให้ดึงข้อมูลด้วย get() ครั้งเดียวแทน อย่างน้อยเปิดแอปแล้วยังเห็น
+   ข้อมูลล่าสุดจากเครื่องอื่น แม้ real-time sync ต่อเนื่องจะใช้ไม่ได้ในเครือข่ายนั้นก็ตาม */
+function fallbackLoadLibraryOnce() {
+  if (librarySnapshotReceived || !fbAvailable || !fbDb) return;
+  fbDb.collection(CLOUD_MANUALS_COLLECTION).get()
+    .then(function (snapshot) {
+      if (librarySnapshotReceived) return; // onSnapshot มาทันก่อนพอดี ไม่ต้องทำซ้ำ
+      handleLibrarySnapshot(snapshot);
+      setCloudStatus('error', 'ซิงก์แบบเรียลไทม์เชื่อมต่อไม่ได้ (เครือข่ายอาจบล็อก) — ดึงข้อมูลล่าสุดแบบครั้งเดียวแทน');
+    })
+    .catch(handleCloudError);
 }
 
 function initCloudSync() {
@@ -1574,6 +1597,7 @@ function initCloudSync() {
     } catch (e) {
       handleCloudError(e);
     }
+    setTimeout(fallbackLoadLibraryOnce, 6000);
   });
 }
 
