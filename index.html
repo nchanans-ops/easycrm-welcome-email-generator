@@ -907,8 +907,12 @@
             <input type="text" id="custName" placeholder="เช่น ร้านกาแฟ Rathakun" oninput="render()">
           </div>
           <div class="field">
-            <label for="subdomain">Subdomain</label>
-            <input type="text" id="subdomain" placeholder="เช่น rathakun" oninput="render()">
+            <label for="portalUrl">ลิงก์สำหรับหน้าบ้าน (Portal URL)</label>
+            <input type="text" id="portalUrl" placeholder="เช่น https://rathakun.easy-crm.co/portal/" oninput="render()">
+          </div>
+          <div class="field">
+            <label for="adminUrl">ลิงก์สำหรับหน้าผู้ดูแลระบบ (Admin URL)</label>
+            <input type="text" id="adminUrl" placeholder="เช่น https://rathakun.easy-crm.co/admin/" oninput="render()">
           </div>
           <div class="field">
             <label for="username">Username</label>
@@ -1139,13 +1143,12 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function buildEmailHTML(name, subdomain, username, password) {
+function buildEmailHTML(name, portalUrlInput, adminUrlInput, username, password) {
   const custName = name || '[ชื่อลูกค้า/ชื่อร้าน]';
-  const sub = subdomain || '[SUBDOMAIN]';
   const user = username || 'admin';
   const pass = password || '[PASSWORD]';
-  const portalUrl = 'https://' + sub + '.easy-crm.co/portal/';
-  const adminUrl = 'https://' + sub + '.easy-crm.co/admin/';
+  const portalUrl = (portalUrlInput || '').trim() || 'https://[SUBDOMAIN].easy-crm.co/portal/';
+  const adminUrl = (adminUrlInput || '').trim() || 'https://[SUBDOMAIN].easy-crm.co/admin/';
 
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F2F4F7; padding:32px 0; font-family:'Sarabun','Segoe UI',Arial,sans-serif;">
@@ -1263,7 +1266,8 @@ function buildEmailHTML(name, subdomain, username, password) {
 function currentValues() {
   return {
     name: document.getElementById('custName').value.trim(),
-    subdomain: document.getElementById('subdomain').value.trim(),
+    portalUrl: document.getElementById('portalUrl').value.trim(),
+    adminUrl: document.getElementById('adminUrl').value.trim(),
     username: document.getElementById('username').value.trim(),
     password: document.getElementById('password').value.trim(),
   };
@@ -1271,7 +1275,7 @@ function currentValues() {
 
 function render() {
   const v = currentValues();
-  document.getElementById('emailContent').innerHTML = buildEmailHTML(v.name, v.subdomain, v.username, v.password);
+  document.getElementById('emailContent').innerHTML = buildEmailHTML(v.name, v.portalUrl, v.adminUrl, v.username, v.password);
   document.getElementById('status').textContent = '';
 }
 
@@ -1315,11 +1319,11 @@ async function copyEmail() {
 
 function downloadEmail() {
   const v = currentValues();
-  const fullHtml = '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Welcome Email</title></head><body style="margin:0;padding:0;">' + buildEmailHTML(v.name, v.subdomain, v.username, v.password) + '</body></html>';
+  const fullHtml = '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Welcome Email</title></head><body style="margin:0;padding:0;">' + buildEmailHTML(v.name, v.portalUrl, v.adminUrl, v.username, v.password) + '</body></html>';
   const blob = new Blob([fullHtml], {type: 'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const safeName = (v.subdomain || 'welcome_email').replace(/[^a-zA-Z0-9_-]/g, '');
+  const safeName = (v.name || 'welcome_email').replace(/[^a-zA-Z0-9_ก-๙-]/g, '').trim().replace(/\s+/g, '_');
   a.href = url;
   a.download = 'welcome_' + (safeName || 'email') + '.html';
   document.body.appendChild(a);
